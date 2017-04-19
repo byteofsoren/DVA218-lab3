@@ -31,3 +31,7 @@
 # Debug files
 *.dSYM/
 *.su
+
+# dont add ycm_files and tags files
+*.py
+tags
