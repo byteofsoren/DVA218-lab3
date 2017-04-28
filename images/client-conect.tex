@@ -1,0 +1,30 @@
+\begin{tikzpicture}
+[
+init/.style={circle, draw=black!100, very thick, minimum size=7mm,node distance=2cm},
+state_split/.style={circle, draw=gray!100, thick, minimum size=7mm,node distance=2cm},
+state/.style={circle, draw=gray!100, thick, minimum size=7mm,node distance=2cm},
+final/.style={circle, draw=black!60,  ultra thick, minimum size=10mm,node distance=23mm}
+]
+%Nodes
+\node[init]             (start)                         {0};
+\node                   (em)        [left of=start]     {};
+\node[state_split]      (reject)    [below of=start]    {reject};
+\node[state_split]      (synx)      [right of=start]    {syn=x\nodepart{lower} 2};
+\node[final]            (end)       [right of=synx]     {1};
+\node[state_split]      (rejected)  [below of=synx]     {reject\nodepart{lower}3};
+
+
+%Lines
+%\draw[->] (start.east) -- (synx.west);
+%\draw[->] (synx.east) -- (end.west);
+%\path[->] (start)  edge [loop above] node {a} (start); 
+\draw[dotted, ->] (em.east) -- (start.west);
+\path[->] (start)   edge [bend left]        node[right]     {!init}     (reject)
+          (reject)  edge [bend left]        node[left]      {}         (start)
+          (start)   edge                    node[above]     {init}      (synx)
+          (synx)    edge [bend left]        node[right]     {ack!=x}      (rejected)
+          (rejected) edge [bend left]       node[left]      {}        (synx)
+          (synx)    edge                    node[above]     {ack=x}     (end)
+          (end)     edge [loop above]       node            {ack=x}     (end)
+          (synx)  edge    [loop above]        node {timeout}    (synx);
+\end{tikzpicture}

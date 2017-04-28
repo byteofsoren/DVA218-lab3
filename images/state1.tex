@@ -1,0 +1,13 @@
+\begin{tikzpicture}[>=stealth',shorten >=1pt,auto,node distance=2cm]
+  \node[initial,state,accepting] (00)      {$00$};
+  \node[state]         (01) [right of=00]  {$01$};
+  \node[state]         (10) [right of=01] {$10$};
+
+
+  \path[->] (00)  edge [loop above] node {a} (00)
+             edge              node {1/0} (01)
+        (01) edge [bend left]  node {0/1} (00)
+             edge              node {1/0} (10)
+        (10) edge [loop above] node {b} (10)
+             edge [bend left]  node {b} (01);
+\end{tikzpicture}
