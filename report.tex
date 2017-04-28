@@ -1,0 +1,116 @@
+% --- DVA218 lab 3 -------------------------
+% | Information:                           |
+% | If you only want to write the text and |
+% | don't want to change settings place    |
+% | go to the row that have the comment    |
+% | -- Start writing here---               |
+% ------------------------------------------
+
+% ------------- START SETTINGS -------------------------------
+\documentclass[conference]{IEEEtran}
+\usepackage{blindtext, graphicx}
+
+\ifCLASSINFOpdf
+\else
+\fi
+
+% A couple of useful packages
+\usepackage[table]{xcolor}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{subfiles}
+ 
+ % Programming color don't touch without permissions.
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codeblue}{HTML}{0073e6}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{commentgray}{rgb}{0.6,0.6,0.6}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{stringblue}{HTML}{0073e6}
+\definecolor{stringpurple}{HTML}{ff99ff}
+\definecolor{backcolour}{rgb}{1,1,1}
+ 
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{commentgray},
+    keywordstyle=\color{codeblue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codegreen},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstset{style=mystyle}
+\lstset{language=c} % C is the default language in listings.
+
+\usepackage{mdwmath}
+% --- packages for state machine ----
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+% --- end state -------------------------
+
+\begin{document}
+\title{DVA218 - Assignment 3a}
+\author{\IEEEauthorblockN{Hampus Baaz}
+\and
+\IEEEauthorblockN{Wicktor L{\"o}w}
+\and
+\IEEEauthorblockN{Magnus S{\"o}rensen}}
+% make the title area
+\maketitle
+
+${}$\hspace{5em}
+
+%\IEEEpeerreviewmaketitle
+
+%\vspace{10 mm}
+
+% --- END SETTINGS --------------------------------------------
+
+%  |~~~Start writing here----------------
+%  |--->
+\section{Introduction}
+This is the first part of two in an assignment with the goal to create a reliable and efficient transport protocol on top of UDP. This first part contains state-machines for the different modules we will be implementing later in the code. There are three different modules, a connection with a three-way handshake, a sliding window protocol with selective acknowledgements and a teardown protocol. Each module will be described with two state machines, one for the sender (client) and one for the receiver (server).
+
+\section{State machines}
+Below we have six different Moore-styled state machines with figures and text describing how our modules we will implement, work.
+
+\subsection{Three-way handshake - Client}
+  
+\input{./images/client-conect.tex}
+\\
+The client start out by sending a synchronisation package (sync) to the server, this package contains information for the sliding window protocol, e.g. window size and number of packages it wants to send. After sending this sync it will wait to receive an acknowledgement (ACK) from the server. If it receives a wrong ACK it will proceed to send a reject back to the server then send a new sync package, if it takes to long time and goes to timeout it will also resend the sync. When it finally receives the right ACK it will establish a connection to the server. In the final stage, the client will discard any ACK:s that might have fallen behind and come in late.  
+\subsection{Three-way handshake - Server}
+\input{./images/server-connect.tex}
+\\
+The server will be idle, waiting for any incoming connections. When it receives the sync from the client it will send and ACK on this and a sequence number (seq). After sending this it will wait for an ACK for the seq or after a timeout resend the same information. If it by any change gets the wrong ACK back it will again resend the ACK and seq. When it receive and ACK on the seq it will establish connection with the client and be ready to receive packages.
+\subsection{Teardown - Initializing host}
+\input{./images/client-disconnect.tex}
+\\
+Either the server or client should be able to initialize the teardown protocol.
+\\
+It do so by sending a disconnection request (dr) to the target host and at the same time start a timer. If it receives an ACK that the other host is disconnecting or after n timeout it will proceed to disconnect and send an ACK on this. 
+\subsection{Teardown - Target host}
+\input{./images/server-disconnect.tex}
+\\
+Here we have a problem, if all the disconnection requests sent from the initializing host get lost, the host will never know that it should disconnect, and that is something we just have to accept.
+\\
+However when the host receives the dr it will send a dr back and wait for an ACK, when it receives an ACK back or after n timeouts it will proceed to disconnect. 
+\subsection{Sliding window sender state machine}
+\input{./images/swin-send.tex}
+For the sliding windows itself it starts of in the idle state. If there is free space at the receiver end packages will be sent. If and when the ACK comes back nothing really happens. Sending more packages is based on having space on the receiver end and the ACK have information about how much space there is on the receiver end. If no ACK (selective) arrives on a sent package the package will be resent. There could be the possibility to receive a NACK to resend a specific. If a package is lost the receiver will still ACK packages after the lost one so only the lost package will be relly affected. 
+\subsection{Sliding windew resiver satate machine}
+\input{./images/swin-recive.tex}
+
+
+\end{document}
