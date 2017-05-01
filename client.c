@@ -9,26 +9,32 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <net/if.h>
 
 #define PORT 5555
 #define hostNameLength 50
 #define messageLength  256
 #define MAXMSG 512
 
-void initSocketAddress(struct sockaddr_in *name, char *hostName, unsigned short int port) {
+char HW_CONECT[200] = "wlp1s0";
+
+void initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
   /* Socket address format set to AF_INET for Internet use. */
-  name->sin_family = AF_INET;
+  name->sin6_family = AF_INET6;
   /* Set port number. The function htons converts from host byte order to network byte order.*/
-  name->sin_port = htons(port);
+  name->sin6_port = htons(port);
   /* Get info about host. */
+  //name->sin6_scope_id=if_nametoindex(HW_CONECT);
+  name->sin6_scope_id=3;  // Wierles interface is 3 on most cases.
+  name->sin6_flowinfo=0;
   hostInfo = gethostbyname(hostName);
   if(hostInfo == NULL) {
     fprintf(stderr, "initSocketAddress - Unknown host %s\n",hostName);
     exit(EXIT_FAILURE);
   }
   /* Fill in the host name into the sockaddr_in struct. */
-  name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
+  name->sin6_addr = *(struct in6_addr *)hostInfo->h_addr;
 }
 /* writeMessage
  * Writes the string message to the file (socket)
@@ -42,37 +48,6 @@ void writeMessage(int fileDescriptor, char *message) {
     perror("writeMessage - Could not write data\n");
     exit(EXIT_FAILURE);
   }
-}
-
-int readMessageFromServer(int fileDescriptor){
-    char buffer[MAXMSG];
-    int nOfBytes;
-
-    nOfBytes = read(fileDescriptor, buffer, MAXMSG);
-    if (nOfBytes < 0) {
-        perror("Could not read data from client\n");
-        exit(EXIT_FAILURE);
-    }else{
-        if(nOfBytes == 0)
-            return(-1);
-        else
-            printf("\n>Incomming message: %s\n", buffer);
-        return(0);
-    }
-}
-void *reader(void *fileDescriptor_in){
-    // This function is called by pthread create
-    // And is used to display the data from the server
-    int fileDescriptor = 0;
-    // int a = *((int*) i);
-    fileDescriptor = *((int*) fileDescriptor_in);
-    while (1){
-        usleep(5000);
-        if (readMessageFromServer(fileDescriptor) == -1) {
-            //printf("Empty data from server\n");
-        }
-    }
-    return 0;
 }
 
 
