@@ -6,7 +6,7 @@ CROSS_TOLL=
 CC=$(CROSS_TOLL) gcc
 TTY=/dev/pts/2
 ## Target is the source files with out .c or .cpp  tex main.c ~> main
-TARGET=main handshake client server slidingwindow
+TARGET=main server client ingsoc
 OBJECTS=$(TARGET:=.o)
 ## EXECFILE is the name on the exe file you want
 EXECFILE=prog
