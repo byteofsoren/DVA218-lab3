@@ -21,7 +21,7 @@ int make_Socket(unsigned short int port) {
     int sock;
     struct sockaddr_in6 name;
 
-    sock = socket(PF_INET6, SOCK_STREAM, 0);     //UDP connection
+    sock = socket(PF_INET6, SOCK_DGRAM, 0);     //UDP connection
     if(sock < 0) {
         perror("Could not create a socket\n");
         exit(EXIT_FAILURE);
