@@ -28,7 +28,8 @@ void _initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned shor
   //name->sin6_scope_id=if_nametoindex(HW_CONECT);
   name->sin6_scope_id=3;  // Wierles interface is 3 on most cases.
   name->sin6_flowinfo=0;
-  hostInfo = gethostbyname(hostName);
+  //hostInfo = gethostbyname(hostName);  //Obsolite
+  hostInfo = gethostbyaddr(hostName);
   if(hostInfo == NULL) {
     fprintf(stderr, "initSocketAddress - Unknown host %s\n",hostName);
     exit(EXIT_FAILURE);
