@@ -9,6 +9,12 @@
 
 int main(int argc, char *argv[])
 {
+    char *data = "Hejsan";
+    int cksum;
+
+    cksum = checkSum(data, strlen(data));
+    printf("Checksum: %d\n", cksum);
+
     char hostname[HOSTNAMELENGHT];
     printf("hello\n");
     if (argv[1] == NULL) {

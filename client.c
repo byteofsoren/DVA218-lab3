@@ -1,4 +1,4 @@
-
+#include "client.h"
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@
 
 char HW_CONECT[200] = "wlp1s0";
 
-void initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
+void _initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
   /* Socket address format set to AF_INET for Internet use. */
   name->sin6_family = AF_INET6;
@@ -40,7 +40,7 @@ void initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned short
  * Writes the string message to the file (socket)
  * denoted by fileDescriptor.
  */
-void writeMessage(int fileDescriptor, char *message) {
+void _writeMessage(int fileDescriptor, char *message) {
   int nOfBytes;
 
   nOfBytes = write(fileDescriptor, message, strlen(message) + 1);
@@ -50,4 +50,15 @@ void writeMessage(int fileDescriptor, char *message) {
   }
 }
 
-
+void client_main(char *addres)
+{
+    int sock = 0;
+    sock = socket(PF_INET6, SOCK_DGRAM, 0);
+    if(sock < 0){
+        perror("Could not create a socet\n");
+        exit(EXIT_FAILURE);
+    }
+    struct sockaddr_in6 serverName;
+    _initSocketAddress(&serverName, addres, PORT);
+    
+}
