@@ -10,11 +10,15 @@
  * length - length of string
  * error - If 1, there is a 10% chance for error, else no errors.
  */
+
  int checkSum(void *data, int length, int error){
 
     srand(time(NULL));
+
     unsigned char *ptr;
     int i;
+    int check = 4;
+    int r;
     int XORvalue;
     int SUMvalue;
     int errorValue = 0;
@@ -27,10 +31,17 @@
         XORvalue ^= *ptr;
         SUMvalue += (*ptr * i);
     }
-    if(error == 1)
-        errorValue = errorGen(XORvalue + SUMvalue);
+    if(error == 1){
+        r = rand()%10;
+        usleep(10000);
 
-    return(XORvalue + SUMvalue + errorValue);
+        if(r == check) {
+
+            errorValue = rand() % (XORvalue ^ SUMvalue);
+        }
+    }
+
+    return((XORvalue ^ SUMvalue) + errorValue);
  }
 /* errorGen - Generates random errors with n% probability
  * Input: error - size of error
@@ -38,12 +49,13 @@
  */
 int errorGen(int error){
 
-    usleep(800000);
-
     int check = 4;
     int r = rand()%10;
 
+
+
     if(r == check) {
+        usleep(10000);
         error = rand() % error;
         return (error);
     }
