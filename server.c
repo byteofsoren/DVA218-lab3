@@ -44,9 +44,9 @@ int make_Socket(unsigned short int port) {
 }
 void Server_Main(int arg){
     int sock,i;
-    int clientSocket;
+    //int clientSocket;
     char buffer[MAXMSG];
-    int nOfBytes;
+    int nOfBytes = 0;
     fd_set activeFdSet, readFdSet; /* Used by select */
 
 /* Create a socket and set it up to accept connections */
@@ -68,6 +68,9 @@ void Server_Main(int arg){
             if (i == sock) {
                 printf("hejsan hoppsan");
                 nOfBytes = read(i, buffer, MAXMSG);
+                if (nOfBytes < 0) {
+                    printf("Did not reade any data from read()\n");
+                }
             }
         }
     }
