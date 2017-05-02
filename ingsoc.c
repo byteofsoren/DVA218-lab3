@@ -1,20 +1,23 @@
 #include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
 #include <string.h>
 #include "server.h"
 #include "client.h"
-
 /* XOR Checksum calculator
  * input:
  * data - string to calculate checksum for
  * length - length of string
+ * error - If 1, there is a 10% chance for error, else no errors.
  */
+ int checkSum(void *data, int length, int error){
 
- int checkSum(void *data, int length){
-
+    srand(time(NULL));
     unsigned char *ptr;
     int i;
     int XORvalue;
     int SUMvalue;
+    int errorValue = 0;
 
     ptr = (unsigned char *)data;
     XORvalue = 0;
@@ -24,5 +27,25 @@
         XORvalue ^= *ptr;
         SUMvalue += (*ptr * i);
     }
-    return(XORvalue^SUMvalue);
+    if(error == 1)
+        errorValue = errorGen(XORvalue + SUMvalue);
+
+    return(XORvalue + SUMvalue + errorValue);
  }
+/* errorGen - Generates random errors with n% probability
+ * Input: error - size of error
+ * Output: A random int or 0.
+ */
+int errorGen(int error){
+
+    usleep(800000);
+
+    int check = 4;
+    int r = rand()%10;
+
+    if(r == check) {
+        error = rand() % error;
+        return (error);
+    }
+    else return(0);
+}
