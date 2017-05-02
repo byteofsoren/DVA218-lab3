@@ -1,6 +1,7 @@
 #include "client.h"
 #include <stdio.h>
 #include <errno.h>
+#include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -29,7 +30,13 @@ void _initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned shor
   name->sin6_scope_id=3;  // Wierles interface is 3 on most cases.
   name->sin6_flowinfo=0;
   //hostInfo = gethostbyname(hostName);  //Obsolite
-  hostInfo = gethostbyaddr(hostName);
+  unsigned char buf[sizeof(struct in6_addr)];
+  int t = inet_pton(AF_INET6, hostName, buf);
+  if (t <= 0){
+    printf("inet_pton genereated an error");
+    exit(EXIT_FAILURE);
+  }
+  hostInfo = gethostbyaddr(buf, sizeof(buf), AF_INET6);
   if(hostInfo == NULL) {
     fprintf(stderr, "initSocketAddress - Unknown host %s\n",hostName);
     exit(EXIT_FAILURE);
