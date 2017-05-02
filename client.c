@@ -50,6 +50,8 @@ void _writeMessage(int fileDescriptor, char *message) {
   }
 }
 
+
+
 void client_main(char *addres)
 {
     int sock = 0;
@@ -60,5 +62,6 @@ void client_main(char *addres)
     }
     struct sockaddr_in6 serverName;
     _initSocketAddress(&serverName, addres, PORT);
+    _writeMessage(sock, "Hello Hampus");
     
 }
