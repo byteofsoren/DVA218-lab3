@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/times.h>infigo
+#include <sys/times.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -21,7 +21,8 @@ int make_Socket(unsigned short int port) {
     int sock;
     struct sockaddr_in6 name;
 
-    sock = socket(PF_INET6, SOCK_STREAM, 0);     //UDP connection
+
+    sock = socket(PF_INET6, SOCK_DGRAM, 0);     //UDP connection
     if(sock < 0) {
         perror("Could not create a socket\n");
         exit(EXIT_FAILURE);
@@ -41,16 +42,34 @@ int make_Socket(unsigned short int port) {
     }
     return(sock);
 }
-void Socket_Main(int arg){
-    int sock;
+void Server_Main(int arg){
+    int sock,i;
     int clientSocket;
+    char buffer[MAXMSG];
+    int nOfBytes;
+    fd_set activeFdSet, readFdSet; /* Used by select */
 
 /* Create a socket and set it up to accept connections */
     sock = make_Socket(PORT);
-    /* Listen for connection requests from clients */
-    if(listen(sock,1) < 0) {
-        perror("Could not listen for connections\n");
+
+    /* Initialize the set of active sockets */
+    FD_ZERO(&activeFdSet);
+    FD_SET(sock, &activeFdSet);
+    printf("\n[waiting for connections...]\n");
+
+    readFdSet = activeFdSet;
+    if(select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0) {
+        perror("Select failed\n");
         exit(EXIT_FAILURE);
+
+    }
+    for(i = 0; i < FD_SETSIZE; ++i) {
+        if (FD_ISSET(i, &readFdSet)) {
+            if (i == sock) {
+                printf("hejsan hoppsan");
+                nOfBytes = read(i, buffer, MAXMSG);
+            }
+        }
     }
 }
 

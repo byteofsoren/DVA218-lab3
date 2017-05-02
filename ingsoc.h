@@ -12,6 +12,6 @@
  * */
 
 
-
+int checkSum(void *data, int length);
 
 #endif /* ifndef INGSOC */
