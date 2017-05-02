@@ -21,13 +21,15 @@ int main(int argc, char *argv[])
     if (argv[1] == NULL) {
         // asumes its a server
         printf("starting server\n");
-        //Socket_Main(0);
+        Server_Main(0);
+
         //--> function to server here
     }else{
         //Assumes its a client
         strncpy(hostname, argv[1], HOSTNAMELENGHT);
         printf("Starting a client section\nConnecting to  %s\n", hostname);
         //--> function to client
+        client_main(hostname);
     }
     printf("Program ended\n\n");
     return 0;
