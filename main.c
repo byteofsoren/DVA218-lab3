@@ -9,18 +9,20 @@
 
 int main(int argc, char *argv[])
 {
-    char *data = "Hejsan";
-    int cksum;
+    char *data = "Hej";
+    int cksum[100];
 
-    cksum = checkSum(data, strlen(data));
-    printf("Checksum: %d\n", cksum);
-
+    for(int i = 0; i <= 100; i++) {
+        cksum[i] = checkSum(data, strlen(data), 1);
+        printf("Checksum: %d\n", cksum[i]);
+    }
     char hostname[HOSTNAMELENGHT];
     printf("hello\n");
     if (argv[1] == NULL) {
         // asumes its a server
         printf("starting server\n");
         Server_Main(0);
+
         //--> function to server here
     }else{
         //Assumes its a client
