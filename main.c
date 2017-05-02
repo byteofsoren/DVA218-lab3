@@ -27,6 +27,7 @@ int main(int argc, char *argv[])
         strncpy(hostname, argv[1], HOSTNAMELENGHT);
         printf("Starting a client section\nConnecting to  %s\n", hostname);
         //--> function to client
+        client_main(hostname);
     }
     printf("Program ended\n\n");
     return 0;
