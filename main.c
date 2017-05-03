@@ -2,17 +2,20 @@
 
 #define HOSTNAMELENGHT 50
 
-
-
 int main(int argc, char *argv[])
 {
-    char *data = "Hej";
+    char *data = "Hejsan jag undrar hur stort MEDDELANDE man kan KORA??";
     int cksum[100];
+    int a = 1, b = 2, c = 3, d = 4;
 
-    /*for(int i = 0; i <= 100; i++) {
+    printf("XOR test: 1 ^ 1 = %d; 1 ^ 2 = %d; 3 ^ 3 = %d; 4 ^ 3 = %d\n", a ^ a, a ^ b, c ^ c, d ^ c);
+
+
+    for(int i = 0; i <= 2; i++) {
+
         cksum[i] = checkSum(data, strlen(data), 1);
         printf("Checksum: %d\n", cksum[i]);
-    }*/
+    }
     char hostname[HOSTNAMELENGHT];
     printf("hello\n");
     if (argv[1] == NULL) {

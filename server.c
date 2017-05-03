@@ -67,24 +67,23 @@ void Server_Main(int arg){
     FD_ZERO(&activeFdSet);
     FD_SET(sock, &activeFdSet);
     printf("\n[waiting for connections...]\n");
+    while(1) {
+        readFdSet = activeFdSet;
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0) {
+            perror("Select failed\n");
+            exit(EXIT_FAILURE);
 
-    readFdSet = activeFdSet;
-    if(select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0) {
-        perror("Select failed\n");
-        exit(EXIT_FAILURE);
-
-    }
-    for(i = 0; i < FD_SETSIZE; ++i) {
-        if (FD_ISSET(i, &readFdSet)) {
-            if (i == sock) {
-                printf("hejsan hoppsan");
-                nOfBytes = read(i, buffer, MAXMSG);
-                if (nOfBytes < 0) {
-                    printf("Did not reade any data from read()\n");
-                }
-                else
-                {
-                    printf("%s", buffer);
+        }
+        for (i = 0; i < FD_SETSIZE; ++i) {
+            if (FD_ISSET(i, &readFdSet)) {
+                if (i == sock) {
+                    printf("hejsan hoppsan\n");
+                    nOfBytes = read(i, buffer, MAXMSG);
+                    if (nOfBytes < 0) {
+                        printf("Did not reade any data from read()\n");
+                    } else {
+                        printf("%s\n", buffer);
+                    }
                 }
             }
         }
