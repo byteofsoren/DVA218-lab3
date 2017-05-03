@@ -33,7 +33,7 @@ void _initSocketAddress(struct sockaddr_in6 *name, char *hostName, unsigned shor
   unsigned char buf[sizeof(struct in6_addr)];
   int t = inet_pton(AF_INET6, hostName, buf);
   if (t <= 0){
-    printf("inet_pton genereated an error");
+    printf("inet_pton genereated a1n error");
     exit(EXIT_FAILURE);
   }
   hostInfo = gethostbyaddr(buf, sizeof(buf), AF_INET6);
