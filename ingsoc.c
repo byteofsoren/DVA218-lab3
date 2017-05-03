@@ -1,12 +1,12 @@
 
 #include "ingsoc.h"
 
-void ingsoc_readMessage(int fileDescriptor, struct sockaddr_in *host_info){
+void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info){
 
-    int nOfBytes;
+    int nOfBytes = sizeof(*host_info);
     char buffer[MAXMSG];
 
-    nOfBytes = recvfrom(fileDescriptor, buffer, MAXMSG, 0, (struct sockaddr *) host_info, sizeof(*host_info));
+    nOfBytes = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
     if(nOfBytes < 0){
         perror("readMessage - Could not READ data");
         exit(EXIT_FAILURE);

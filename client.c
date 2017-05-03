@@ -88,7 +88,10 @@ int _connect(const char *addres)
                     sSyn.length = 0;
                     sSyn.data = 0;
                     sSyn.SYN = true;
-                    _writeMessage(FD_SOCKET, (char*)&sSyn);
+                    //_writeMessage(FD_SOCKET, (char*)&sSyn);
+
+                    ingsoc_writeMessage(FD_SOCKET, &sSyn, &serverName);
+
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
                     FD_CLR(0, &clientFD);
@@ -101,6 +104,8 @@ int _connect(const char *addres)
                         perror("select");
                     }
                     if (FD_ISSET(FD_SOCKET, &clientFD)) {
+                        ingsoc rAck;
+                        ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
                         // Read from socket.
                         // om ACk -> state = 1;
                         // om ej ACK -> exit
