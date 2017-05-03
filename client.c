@@ -89,7 +89,9 @@ int _connect(const char *addres)
                     sSyn.data = 0;
                     sSyn.SYN = true;
                     //_writeMessage(FD_SOCKET, (char*)&sSyn);
+
                     ingsoc_writeMessage(FD_SOCKET, &sSyn, &serverName);
+
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
                     FD_CLR(0, &clientFD);
