@@ -77,6 +77,7 @@ void _writeMessage(int fileDescriptor, char *message) {
 
 void client_main(char *addres)
 {
+    int temp = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
     if(sock < 0){
@@ -85,5 +86,10 @@ void client_main(char *addres)
     }
     struct sockaddr_in serverName;
     _initSocketAddress(&serverName, addres, PORT);
+    temp = connect(sock, (struct sockaddr *) &serverName, sizeof(serverName));
+    if (temp < 0) {
+        printf("Error: cant connect");
+        exit(EXIT_FAILURE);
+    }
     _writeMessage(sock, "Hello Hampus");
 }
