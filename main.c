@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <string.h>
-#include "server.h"
-#include "client.h"
+#include "ingsoc.h"
 
 #define HOSTNAMELENGHT 50
 
@@ -15,9 +12,10 @@ int main(int argc, char *argv[])
 
 
     for(int i = 0; i <= 10; i++) {
+
         cksum[i] = checkSum(data, strlen(data), 1);
         printf("Checksum: %d\n", cksum[i]);
-    }
+    }*/
     char hostname[HOSTNAMELENGHT];
     printf("hello\n");
     if (argv[1] == NULL) {
