@@ -11,11 +11,11 @@ int main(int argc, char *argv[])
     printf("XOR test: 1 ^ 1 = %d; 1 ^ 2 = %d; 3 ^ 3 = %d; 4 ^ 3 = %d\n", a ^ a, a ^ b, c ^ c, d ^ c);
 
 
-    for(int i = 0; i <= 10; i++) {
+    for(int i = 0; i <= 2; i++) {
 
         cksum[i] = checkSum(data, strlen(data), 1);
         printf("Checksum: %d\n", cksum[i]);
-    }*/
+    }
     char hostname[HOSTNAMELENGHT];
     printf("hello\n");
     if (argv[1] == NULL) {
