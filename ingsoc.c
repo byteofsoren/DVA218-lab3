@@ -1,12 +1,12 @@
+
 #include "ingsoc.h"
 
 /* XOR Checksum calculator
  * input:
  * data - string to calculate checksum for
  * length - length of string
- * error - If 1, there is a 10% chance for error, else no errors.
+ * error - If 1, there is a 10% chance for simulated error, else no errors.
  */
-
  int checkSum(void *data, int length, int error){
 
     srand(time(NULL));
@@ -17,7 +17,7 @@
     int r;
     int XORvalue;
     int SUMvalue;
-    int errorValue = 0;
+    int ERRORvalue = 0;
 
     ptr = (unsigned char *)data;
     XORvalue = 0;
@@ -27,33 +27,16 @@
         XORvalue ^= *ptr;
         SUMvalue += (*ptr * i);
     }
+    /* If chosen, the code will generate a random error with 10% probability */
     if(error == 1){
         r = rand()%10;
-        usleep(10000);
-
+        usleep(1000000);
+        /* errorValue will be between 1 and the checksum value and will
+         * be added to the checksum to simulate an error*/
         if(r == check) {
-
-            errorValue = rand() % (XORvalue ^ SUMvalue);
+            ERRORvalue = rand() % (XORvalue ^ SUMvalue) + 1;
         }
     }
-
-    return((XORvalue ^ SUMvalue) + errorValue);
+    /* Will return the checksum, "errorValue" is zero if no error occurs */
+    return((XORvalue ^ SUMvalue) + ERRORvalue);
  }
-/* errorGen - Generates random errors with n% probability
- * Input: error - size of error
- * Output: A random int or 0.
- */
-int errorGen(int error){
-
-    int check = 4;
-    int r = rand()%10;
-
-
-
-    if(r == check) {
-        usleep(10000);
-        error = rand() % error;
-        return (error);
-    }
-    else return(0);
-}
