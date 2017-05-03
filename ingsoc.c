@@ -1,17 +1,7 @@
 
 #include "ingsoc.h"
 
-/* XOR Checksum calculator
- * input:
- * data - string to calculate checksum for
- * length - length of string
- * error - If 1, there is a 10% chance for simulated error, else no errors.
- */
-/* writeMessage
- * Writes the string message to the file (socket)
- * denoted by fileDescriptor.
- */
-void ingsoc_readMessage(int fileDescriptor, void* data, struct sockaddr_in *host_info){
+void ingsoc_readMessage(int fileDescriptor, struct sockaddr_in *host_info){
 
     int nOfBytes;
     char buffer[MAXMSG];
@@ -22,6 +12,11 @@ void ingsoc_readMessage(int fileDescriptor, void* data, struct sockaddr_in *host
         exit(EXIT_FAILURE);
     }
 }
+/* writeMessage
+ * Writes the string message to the file (socket)
+ * denoted by fileDescriptor.
+ */
+
 void ingsoc_writeMessage(int fileDescriptor, void* data, struct sockaddr_in *host_info) {
 
     int nOfBytes;
@@ -32,6 +27,12 @@ void ingsoc_writeMessage(int fileDescriptor, void* data, struct sockaddr_in *hos
         exit(EXIT_FAILURE);
     }
 }
+/* XOR Checksum calculator
+ * input:
+ * data - string to calculate checksum for
+ * length - length of string
+ * error - If 1, there is a 10% chance for simulated error, else no errors.
+ */
  int checkSum(void *data, int length, int error){
 
     srand(time(NULL));
