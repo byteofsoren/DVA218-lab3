@@ -1,9 +1,5 @@
-#include <stdio.h>
-#include <time.h>
-#include <stdlib.h>
-#include <string.h>
-#include "server.h"
-#include "client.h"
+#include "ingsoc.h"
+
 /* XOR Checksum calculator
  * input:
  * data - string to calculate checksum for

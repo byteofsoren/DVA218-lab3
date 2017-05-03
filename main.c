@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <string.h>
-#include "server.h"
-#include "client.h"
+#include "ingsoc.h"
 
 #define HOSTNAMELENGHT 50
 

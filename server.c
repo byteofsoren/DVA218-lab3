@@ -1,18 +1,4 @@
-
-#define  blacklist "192.168.43.39"
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/times.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <string.h>
-#include <net/if.h>
-#include "server.h"
+#include "ingsoc.h"
 
 #define PORT 5555
 #define MAXMSG 512
@@ -95,6 +81,10 @@ void Server_Main(int arg){
                 nOfBytes = read(i, buffer, MAXMSG);
                 if (nOfBytes < 0) {
                     printf("Did not reade any data from read()\n");
+                }
+                else
+                {
+                    printf("%s", buffer);
                 }
             }
         }
