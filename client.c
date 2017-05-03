@@ -5,7 +5,7 @@
 #define messageLength  256
 #define MAXMSG 512
 
-char HW_CONECT[200] = "wlp1s0";
+char HW_CONNECT[200] = "wlp1s0";
 int FD_SOCKET;
 
 void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
@@ -15,7 +15,7 @@ void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned sho
   /* Set port number. The function htons converts from host byte order to network byte order.*/
   name->sin6_port = htons(port);
   /* Get info about host. */
-  name->sin6_scope_id=if_nametoindex(HW_CONECT);
+  name->sin6_scope_id=if_nametoindex(HW_CONNECT);
   //name->sin6_scope_id=3;  // Wierles interface is 3 on most cases.
   name->sin6_flowinfo=0;
   //hostInfo = gethostbyname(hostName);  //Obsolite
@@ -48,20 +48,6 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
 }
 
-/* writeMessage
- * Writes the string message to the file (socket)
- * denoted by fileDescriptor.
- */
-void _writeMessage(int fileDescriptor, char *message) {
-  int nOfBytes;
-
-  nOfBytes = write(fileDescriptor, message, strlen(message) + 1);
-  if(nOfBytes < 0) {
-    perror("writeMessage - Could not write data\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
 int _connect(const char *addres)
 {
     char buffer[MAXMSG];
@@ -76,13 +62,13 @@ int _connect(const char *addres)
     struct sockaddr_in serverName;
     _initSocketAddress(&serverName, addres, PORT);
     //_writeMessage(sock, "Hello Hampus");
-  
+  /*
     nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
     usleep(10000);
     int fucktard = sizeof(serverName);
     nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
     printf("%s\n",buffer);
-  
+  */
   
     short state = 0;
     bool running = 1;
