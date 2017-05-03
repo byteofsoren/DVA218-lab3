@@ -53,8 +53,8 @@ int make_Socket4(unsigned short int port) {
         perror("Could not create a socket\n");
         exit(EXIT_FAILURE);
     }
-    
-    name.sin_family = AF_INET
+
+    name.sin_family = AF_INET;
     name.sin_port = htons(port);
     name.sin_addr.s_addr = htonl(INADDR_ANY);
 
