@@ -1,5 +1,4 @@
 
-#define  blacklist "192.168.43.39"
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -95,6 +94,10 @@ void Server_Main(int arg){
                 nOfBytes = read(i, buffer, MAXMSG);
                 if (nOfBytes < 0) {
                     printf("Did not reade any data from read()\n");
+                }
+                else
+                {
+                    printf("%s", buffer);
                 }
             }
         }
