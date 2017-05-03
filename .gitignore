@@ -38,4 +38,4 @@ tags
 Make
 CMake
 test.c
-prog
+*.out
