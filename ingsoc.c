@@ -1,6 +1,32 @@
 
 #include "ingsoc.h"
 
+void ingsoc_readMessage(int fileDescriptor, struct sockaddr_in *host_info){
+
+    int nOfBytes;
+    char buffer[MAXMSG];
+
+    nOfBytes = recvfrom(fileDescriptor, buffer, MAXMSG, 0, (struct sockaddr *) host_info, sizeof(*host_info));
+    if(nOfBytes < 0){
+        perror("readMessage - Could not READ data");
+        exit(EXIT_FAILURE);
+    }
+}
+/* writeMessage
+ * Writes the string message to the file (socket)
+ * denoted by fileDescriptor.
+ */
+
+void ingsoc_writeMessage(int fileDescriptor, void* data, struct sockaddr_in *host_info) {
+
+    int nOfBytes;
+
+    nOfBytes = sendto(fileDescriptor, data, 13, 0, (struct sockaddr*)host_info,sizeof(*host_info));
+    if(nOfBytes < 0){
+        perror("writeMessage - Could not WRITE data\n");
+        exit(EXIT_FAILURE);
+    }
+}
 /* XOR Checksum calculator
  * input:
  * data - string to calculate checksum for
