@@ -1,17 +1,4 @@
-
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/times.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <string.h>
-#include <net/if.h>
-#include "server.h"
+#include "ingsoc.h"
 
 #define PORT 5555
 #define MAXMSG 512
