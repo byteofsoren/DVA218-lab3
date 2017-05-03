@@ -88,7 +88,7 @@ int _connect(const char *addres)
                     sSyn.length = 0;
                     sSyn.data = 0;
                     sSyn.SYN = true;
-                    _writeMessage(FD_SOCKET, (char*)&sSyn);
+                    //_writeMessage(FD_SOCKET, (char*)&sSyn);
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
                     FD_CLR(0, &clientFD);
