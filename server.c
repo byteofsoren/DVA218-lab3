@@ -55,6 +55,7 @@ int make_Socket4(unsigned short int port) {
 
 void Server_Main(int arg){
     int sock,i;
+    struct sockaddr_in  clientInfo;
     //int clientSocket;
     char buffer[MAXMSG];
     int nOfBytes = 0;
@@ -78,11 +79,15 @@ void Server_Main(int arg){
             if (FD_ISSET(i, &readFdSet)) {
                 if (i == sock) {
                     printf("hejsan hoppsan\n");
-                    nOfBytes = read(i, buffer, MAXMSG);
+                    int fucktard = sizeof(clientInfo);
+                    nOfBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &clientInfo ,&(fucktard));
+                    //nOfBytes = read(i, buffer, MAXMSG);
                     if (nOfBytes < 0) {
                         printf("Did not reade any data from read()\n");
                     } else {
                         printf("%s\n", buffer);
+                        int Snucktard = sizeof(clientInfo);
+                        nOfBytes = sendto(sock,buffer,nOfBytes,0,(struct sockaddr*) &clientInfo,Snucktard);
                     }
                 }
             }

@@ -65,6 +65,8 @@ void _writeMessage(int fileDescriptor, char *message) {
 
 void client_main(char *addres)
 {
+    char buffer[MAXMSG];
+    int nBytes = 0;
     int temp = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
@@ -74,10 +76,14 @@ void client_main(char *addres)
     }
     struct sockaddr_in serverName;
     _initSocketAddress(&serverName, addres, PORT);
-    temp = connect(sock, (struct sockaddr *) &serverName, sizeof(serverName));
     if (temp < 0) {
         printf("Error: cant connect");
         exit(EXIT_FAILURE);
     }
-    _writeMessage(sock, "Hello Hampus");
+    //_writeMessage(sock, "Hello Hampus");
+    nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
+    usleep(10000);
+    int fucktard = sizeof(serverName);
+    nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
+    printf("%s\n",buffer);
 }
