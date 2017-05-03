@@ -7,6 +7,31 @@
  * length - length of string
  * error - If 1, there is a 10% chance for simulated error, else no errors.
  */
+/* writeMessage
+ * Writes the string message to the file (socket)
+ * denoted by fileDescriptor.
+ */
+void ingsoc_readMessage(int fileDescriptor, void* data, struct sockaddr_in *host_info){
+
+    int nOfBytes;
+    char buffer[MAXMSG];
+
+    nOfBytes = recvfrom(fileDescriptor, buffer, MAXMSG, 0, (struct sockaddr *) host_info, sizeof(*host_info));
+    if(nOfBytes < 0){
+        perror("readMessage - Could not READ data");
+        exit(EXIT_FAILURE);
+    }
+}
+void ingsoc_writeMessage(int fileDescriptor, void* data, struct sockaddr_in *host_info) {
+
+    int nOfBytes;
+
+    nOfBytes = sendto(fileDescriptor, data, 13, 0, (struct sockaddr*)host_info,sizeof(*host_info));
+    if(nOfBytes < 0){
+        perror("writeMessage - Could not WRITE data\n");
+        exit(EXIT_FAILURE);
+    }
+}
  int checkSum(void *data, int length, int error){
 
     srand(time(NULL));

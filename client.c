@@ -48,20 +48,6 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
 }
 
-/* writeMessage
- * Writes the string message to the file (socket)
- * denoted by fileDescriptor.
- */
-void _writeMessage(int fileDescriptor, char *message) {
-  int nOfBytes;
-
-  nOfBytes = write(fileDescriptor, message, strlen(message) + 1);
-  if(nOfBytes < 0) {
-    perror("writeMessage - Could not write data\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
 int _connect(const char *addres)
 {
     char buffer[MAXMSG];
@@ -81,13 +67,13 @@ int _connect(const char *addres)
         exit(EXIT_FAILURE);
     }
     //_writeMessage(sock, "Hello Hampus");
-  
+  /*
     nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
     usleep(10000);
     int fucktard = sizeof(serverName);
     nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
     printf("%s\n",buffer);
-  
+  */
   
     short state = 0;
     bool running = 1;
