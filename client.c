@@ -6,6 +6,7 @@
 #define MAXMSG 512
 
 char HW_CONECT[200] = "wlp1s0";
+int FD_SOCKET;
 
 void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
@@ -61,9 +62,7 @@ void _writeMessage(int fileDescriptor, char *message) {
   }
 }
 
-
-
-void client_main(char *addres)
+int _connect(const char *addres)
 {
     int temp = 0;
     int sock = 0;
@@ -72,6 +71,7 @@ void client_main(char *addres)
         perror("Could not create a socet\n");
         exit(EXIT_FAILURE);
     }
+    FD_SOCKET = sock;
     struct sockaddr_in serverName;
     _initSocketAddress(&serverName, addres, PORT);
     temp = connect(sock, (struct sockaddr *) &serverName, sizeof(serverName));
@@ -79,5 +79,61 @@ void client_main(char *addres)
         printf("Error: cant connect");
         exit(EXIT_FAILURE);
     }
-    _writeMessage(sock, "Hello Hampus");
+    short state = 0;
+    bool running = 1;
+    int counter = 10;
+    while(running){
+        switch (state) {
+            case 0:
+                do{
+                    //send syn
+                    ingsoc sSyn;
+                    sSyn.clientID=getpid();
+                    sSyn.ACK = false;
+                    sSyn.FIN = false;
+                    sSyn.RES = false;
+                    sSyn.SEQ = 0;
+                    sSyn.cksum = 0;
+                    sSyn.length = 0;
+                    sSyn.data = 0;
+                    sSyn.SYN = true;
+                    _writeMessage(FD_SOCKET, (char*)&sSyn);
+                    fd_set clientFD;
+                    FD_ZERO(&clientFD);
+                    FD_CLR(0, &clientFD);
+                    FD_SET(0, &clientFD);
+                    struct timeval timer;
+                    timer.tv_sec=10;
+                    timer.tv_usec=5000;
+                    int t = select(0+1, &clientFD, NULL, NULL, &timer);
+                    if (t == -1) {
+                        perror("select");
+                    }
+                    if (FD_ISSET(FD_SOCKET, &clientFD)) {
+                        // Read from socket.
+                        // om ACk -> state = 1;
+                        // om ej ACK -> exit
+                    }else{
+                        printf("Time out counter is now %d\n", counter);
+                        counter--;
+                        if(counter == 0) exit(EXIT_FAILURE);
+                    }
+                    //Recive ack
+                    //or time out
+                }while(1);
+                state = 1;
+                break;
+            case 1:
+                // send ack to server 
+                // fin
+                running = 0;
+        }
+    }
+    return 0;
+}
+
+void client_main(char *addres)
+{
+    _connect(addres);
+    //_writeMessage(sock, "Hello Hampus");
 }
