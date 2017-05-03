@@ -66,7 +66,6 @@ int _connect(const char *addres)
 {
     char buffer[MAXMSG];
     int nBytes = 0;
-    int temp = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
     if(sock < 0){
@@ -76,10 +75,6 @@ int _connect(const char *addres)
     FD_SOCKET = sock;
     struct sockaddr_in serverName;
     _initSocketAddress(&serverName, addres, PORT);
-    if (temp < 0) {
-        printf("Error: cant connect");
-        exit(EXIT_FAILURE);
-    }
     //_writeMessage(sock, "Hello Hampus");
   
     nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));

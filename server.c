@@ -75,21 +75,18 @@ void Server_Main(int arg){
             exit(EXIT_FAILURE);
 
         }
-        for (i = 0; i < FD_SETSIZE; ++i) {
-            if (FD_ISSET(i, &readFdSet)) {
-                if (i == sock) {
-                    printf("hejsan hoppsan\n");
-                    int fucktard = sizeof(clientInfo);
-                    nOfBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &clientInfo ,&(fucktard));
-                    //nOfBytes = read(i, buffer, MAXMSG);
-                    if (nOfBytes < 0) {
-                        printf("Did not reade any data from read()\n");
-                    } else {
-                        printf("%s\n", buffer);
-                        int Snucktard = sizeof(clientInfo);
-                        nOfBytes = sendto(sock,buffer,nOfBytes,0,(struct sockaddr*) &clientInfo,Snucktard);
-                    }
-                }
+        if (FD_ISSET(sock, &readFdSet)) {
+
+            printf("hejsan hoppsan\n");
+            int fucktard = sizeof(clientInfo);
+            nOfBytes = recvfrom(sock, buffer, MAXMSG, 0, (struct sockaddr *) &clientInfo, &(fucktard));
+            //nOfBytes = read(i, buffer, MAXMSG);
+            if (nOfBytes < 0) {
+                printf("Did not reade any data from read()\n");
+            } else {
+                printf("%s\n", buffer);
+                int Snucktard = sizeof(clientInfo);
+                nOfBytes = sendto(sock, buffer, nOfBytes, 0, (struct sockaddr *) &clientInfo, Snucktard);
             }
         }
     }
