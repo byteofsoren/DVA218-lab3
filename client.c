@@ -94,8 +94,7 @@ int _connect(const char *addres)
 
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
-                    FD_CLR(0, &clientFD);
-                    FD_SET(0, &clientFD);
+                    FD_SET(FD_SOCKET, &clientFD);
                     struct timeval timer;
                     timer.tv_sec=10;
                     timer.tv_usec=5000;
@@ -106,6 +105,7 @@ int _connect(const char *addres)
                     if (FD_ISSET(FD_SOCKET, &clientFD)) {
                         ingsoc rAck;
                         ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+                        FD_CLR(FD_SOCKET, &clientFD);
                         if (rAck.ACK) {
                             printf("ACK reseved");
                             state = 1;
