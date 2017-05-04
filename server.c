@@ -55,10 +55,14 @@ int make_Socket4(unsigned short int port) {
 void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
 {
     int nOfBytes = 0;
+    struct timeval timeout;
 
     while(1) {
+        timeout.tv_usec = 50000;
+        timeout.tv_sec = 20;
         fd_set readFdSet = *activeFdSet;
-        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0) {
+
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout) < 0) {
             perror("Select failed\n");
             exit(EXIT_FAILURE);
 
