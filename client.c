@@ -90,7 +90,7 @@ int _connect(const char *addres)
                     sSyn.SYN = true;
                     //_writeMessage(FD_SOCKET, (char*)&sSyn);
 
-                    ingsoc_writeMessage(FD_SOCKET, &sSyn, &serverName);
+                    ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
 
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
