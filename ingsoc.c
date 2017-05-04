@@ -2,13 +2,28 @@
 #include "ingsoc.h"
 
 
+void ingsoc_init(ingsoc *insoci)
+{
+    insoci->SYN=false;
+    insoci->clientID = getpid();
+    insoci->FIN=false;
+    insoci->RES=false;
+    insoci->ACK=false;
+    insoci->ACKnr=0;
+    insoci->SEQ=0;
+    insoci->cksum=0;
+    insoci->length=0;
+    insoci->data=0;
+}
+
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info){
 
-    int nOfBytes = sizeof(*host_info);
-    char buffer[MAXMSG];
+    unsigned nOfBytes = sizeof(*host_info);
+    int dataRead = 0;
+//    char buffer[MAXMSG];
 
-    nOfBytes = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
-    if(nOfBytes < 0){
+    dataRead = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
+    if(dataRead < 0){
         perror("readMessage - Could not READ data");
         exit(EXIT_FAILURE);
     }
