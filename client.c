@@ -50,8 +50,8 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
 
 int _connect(const char *addres)
 {
-    char buffer[MAXMSG];
-    int nBytes = 0;
+    //char buffer[MAXMSG];
+    //int nBytes = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
     if(sock < 0){
@@ -90,22 +90,29 @@ int _connect(const char *addres)
                     sSyn.SYN = true;
                     //_writeMessage(FD_SOCKET, (char*)&sSyn);
 
-                    ingsoc_writeMessage(FD_SOCKET, &sSyn, &serverName);
+                    ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
 
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
-                    FD_CLR(0, &clientFD);
-                    FD_SET(0, &clientFD);
+                    FD_SET(FD_SOCKET, &clientFD);
                     struct timeval timer;
                     timer.tv_sec=10;
                     timer.tv_usec=5000;
-                    int t = select(0+1, &clientFD, NULL, NULL, &timer);
+                    int t = select(5, &clientFD, NULL, NULL, &timer);
                     if (t == -1) {
                         perror("select");
                     }
                     if (FD_ISSET(FD_SOCKET, &clientFD)) {
                         ingsoc rAck;
                         ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+                        FD_CLR(FD_SOCKET, &clientFD);
+                        if (rAck.ACK) {
+                            printf("ACK reseved");
+                            state = 1;
+                        }else{
+                            printf("!ACK recived");
+                            exit(EXIT_FAILURE);
+                        }
                         // Read from socket.
                         // om ACk -> state = 1;
                         // om ej ACK -> exit
