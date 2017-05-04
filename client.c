@@ -46,6 +46,7 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
         exit(EXIT_FAILURE);
     }
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
+
 }
 
 int _connect(const char *address)
@@ -61,6 +62,7 @@ int _connect(const char *address)
     FD_SOCKET = sock;
     struct sockaddr_in serverName;
     _initSocketAddress(&serverName, address, PORT);
+    //int nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
     //_writeMessage(sock, "Hello Hampus");
   /*
     nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
@@ -69,7 +71,7 @@ int _connect(const char *address)
     nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
     printf("%s\n",buffer);
   */
-  
+
     short state = 0;
     bool running = 1;
     int counter = 10;
