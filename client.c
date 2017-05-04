@@ -98,7 +98,7 @@ int _connect(const char *addres)
                     struct timeval timer;
                     timer.tv_sec=10;
                     timer.tv_usec=5000;
-                    int t = select(5, &clientFD, NULL, NULL, &timer);
+                    int t = select(FD_SETSIZE, &clientFD, NULL, NULL, &timer);
                     if (t == -1) {
                         perror("select");
                     }
