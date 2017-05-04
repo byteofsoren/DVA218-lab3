@@ -60,8 +60,9 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
     int n = 0;
     int t;
     ingsoc rACK, sACK;
-
-    printf("Startar connect");
+    rACK.SYN = false;
+    rACK.ACK = false;
+    sACK.ACK = false;
 
     while(1)
     {
@@ -77,23 +78,21 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
 
         if (FD_ISSET(*sock, &readFdSet))
         {
-            printf("fucking kuk\n");
             switch (state) {
 
-                case 0: //Waiting for SYN
+                /* Waiting for SYN from client */
+                case 0:
                     do {
+                        printf("Server - [Starting three-way handshake]\n");
                         ingsoc_readMessage(*sock, &rACK, clientInfo);
-                        t = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout);
-                        if (t == -1)
-                            perror("Server - [Select Failed]\n");
-
                         if (rACK.SYN == true)
                         {
-                            printf("Server - [SYN received] attempt %d\n", n);
-                            //state = 1;
+                            printf("Server - [SYN received] attempt %d\n", n+1);
+                            state = 1;
                             n = 0;
                             break;
-                        } else n++;
+                        }
+                        else n++;
                     } while (n <= 3);
 
                 case 1: //Send ACK + SEQ then wait for final ACK
@@ -104,11 +103,9 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
                         /*Sending ACk and SEQ */
                         ingsoc_writeMessage(*sock, &sACK, sizeof(sACK), clientInfo);
                         printf("Server - [ACK sent]\n");
+                        usleep(3000000);
                         /* Waiting for final ACK */
                         ingsoc_readMessage(*sock, &rACK, clientInfo);
-                        t = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout);
-                        if (t == -1)
-                            perror("Server - [Select Failed]\n");
 
                         if(rACK.ACK == true)
                         {
@@ -122,6 +119,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
                 case 2:
                     printf("Server - [Three-way handshake successful]\n");
                     break;
+                default: return 0;
             }
         }
         else
