@@ -52,45 +52,45 @@ int make_Socket4(unsigned short int port) {
     return(sock);
 }
 
-void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
-{
-    int nOfBytes = 0;
-    struct timeval timeout;
-
-    while(1) {
-        timeout.tv_usec = 50000;
-        timeout.tv_sec = 20;
-        fd_set readFdSet = *activeFdSet;
-
-        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout) < 0) {
-            perror("Select failed\n");
-            exit(EXIT_FAILURE);
-
-        }
-        if (FD_ISSET(*sock, &readFdSet)) {
-
-            printf("hejsan hoppsan\n");
-
-        }
-    }
-}
-
 
 void Server_Main(int arg){
-    int sock;
+    int sock,i;
     struct sockaddr_in  clientInfo;
+    //int clientSocket;
+    char buffer[MAXMSG];
     int nOfBytes = 0;
-    fd_set activeFdSet; /* Used by select */
-    FD_ZERO(&activeFdSet);
-    FD_SET(sock,&activeFdSet);
+    fd_set activeFdSet, readFdSet; /* Used by select */
+
 /* Create a socket and set it up to accept connections */
     sock = make_Socket4(PORT);
 
     /* Initialize the set of active sockets */
-
+    FD_ZERO(&activeFdSet);
+    FD_SET(sock, &activeFdSet);
     printf("\n[waiting for connections...]\n");
+    while(1) {
+        readFdSet = activeFdSet;
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0) {
+            perror("Select failed\n");
+            exit(EXIT_FAILURE);
 
-    connection(&sock,&activeFdSet,&clientInfo);
-
+        }
+        for (i = 0; i < FD_SETSIZE; ++i) {
+            if (FD_ISSET(i, &readFdSet)) {
+                if (i == sock) {
+                    printf("hejsan hoppsan\n");
+                    int fucktard = sizeof(clientInfo);
+                    nOfBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &clientInfo ,&(fucktard));
+                    //nOfBytes = read(i, buffer, MAXMSG);
+                    if (nOfBytes < 0) {
+                        printf("Did not reade any data from read()\n");
+                    } else {
+                        printf("%s\n", buffer);
+                        int Snucktard = sizeof(clientInfo);
+                        nOfBytes = sendto(sock,buffer,nOfBytes,0,(struct sockaddr*) &clientInfo,Snucktard);
+                    }
+                }
+            }
+        }
+    }
 }
-
