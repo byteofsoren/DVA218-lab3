@@ -46,23 +46,21 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
         exit(EXIT_FAILURE);
     }
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
-
 }
 
-int _connect(const char *address)
+int _connect(const char *addres)
 {
     //char buffer[MAXMSG];
     //int nBytes = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
     if(sock < 0){
-        perror("Could not create a socket\n");
+        perror("Could not create a socet\n");
         exit(EXIT_FAILURE);
     }
     FD_SOCKET = sock;
     struct sockaddr_in serverName;
-    _initSocketAddress(&serverName, address, PORT);
-    //int nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
+    _initSocketAddress(&serverName, addres, PORT);
     //_writeMessage(sock, "Hello Hampus");
   /*
     nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
@@ -71,18 +69,17 @@ int _connect(const char *address)
     nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
     printf("%s\n",buffer);
   */
-
+  
     short state = 0;
     bool running = 1;
     int counter = 10;
-    int t;
-
     while(running){
         switch (state) {
             case 0:
                 do{
+                    //send syn
                     ingsoc sSyn;
-                    sSyn.clientID = getpid();
+                    sSyn.clientID=getpid();
                     sSyn.ACK = false;
                     sSyn.FIN = false;
                     sSyn.RES = false;
@@ -91,16 +88,14 @@ int _connect(const char *address)
                     sSyn.length = 0;
                     sSyn.data = 0;
                     sSyn.SYN = true;
+                    //_writeMessage(FD_SOCKET, (char*)&sSyn);
 
                     ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
-                    printf("Client - [SYN sent]\n");
 
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
                     FD_SET(FD_SOCKET, &clientFD);
-
                     struct timeval timer;
-<<<<<<< HEAD
                     timer.tv_sec=10;
                     timer.tv_usec=5000;
                     int t = select(FD_SETSIZE, &clientFD, NULL, NULL, &timer);
@@ -108,52 +103,33 @@ int _connect(const char *address)
                         perror("select");
                     }
                     if (FD_ISSET(FD_SOCKET, &clientFD)) {
-=======
-                    timer.tv_sec = 10;
-                    timer.tv_usec = 5000;
-
-                    t = select(5, &clientFD, NULL, NULL, &timer);
-                    if (t == -1)
-                        perror("Client - [Select failed]\n");
-
-
-                    if (FD_ISSET(FD_SOCKET, &clientFD))
-                    {
->>>>>>> eb415bfaf7a138eb81f0fbb5613bcfb0d0bcc0a8
                         ingsoc rAck;
                         ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
                         FD_CLR(FD_SOCKET, &clientFD);
-
-                        if (rAck.ACK)
-                        {
-                            printf("Client - [ACK received] attempt %d\n" ,10-counter);
+                        if (rAck.ACK) {
+                            printf("ACK reseved");
                             state = 1;
-                            break;
-                        }else
-                        {
-                            printf("Client - [ACK corrupt]");
-                            //Go to reject state <----------------
+                        }else{
+                            printf("!ACK recived");
                             exit(EXIT_FAILURE);
                         }
-                    }
-                    else
-                    {
-                        printf("Timeout counter is now %d\n", counter);
+                        // Read from socket.
+                        // om ACk -> state = 1;
+                        // om ej ACK -> exit
+                    }else{
+                        printf("Time out counter is now %d\n", counter);
                         counter--;
-                        if(counter == 0)
-                            exit(EXIT_FAILURE);
+                        if(counter == 0) exit(EXIT_FAILURE);
                     }
+                    //Recive ack
+                    //or time out
                 }while(1);
                 state = 1;
                 break;
             case 1:
-                // Send final ACK to server
-                printf("Client - [Three-way Handshake successful]\n");
+                // send ack to server 
+                // fin
                 running = 0;
-                //break;
-            case 2:
-                //Sent reject
-                break;
         }
     }
     return 0;
