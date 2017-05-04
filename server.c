@@ -77,13 +77,15 @@ void Server_Main(int arg){
     struct sockaddr_in  clientInfo;
     int nOfBytes = 0;
     fd_set activeFdSet; /* Used by select */
-
+    FD_ZERO(&activeFdSet);
+    FD_SET(sock,&activeFdSet);
 /* Create a socket and set it up to accept connections */
     sock = make_Socket4(PORT);
 
     /* Initialize the set of active sockets */
 
     printf("\n[waiting for connections...]\n");
+
     connection(&sock,&activeFdSet,&clientInfo);
 
 }
