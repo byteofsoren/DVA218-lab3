@@ -71,7 +71,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
 
         if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout) < 0)
         {
-            perror("Select failed\n");
+            perror("Server - [Select Failed]\n");
             exit(EXIT_FAILURE);
         }else state = 0;
 
@@ -84,15 +84,16 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
                         ingsoc_readMessage(*sock, &rACK, clientInfo);
                         t = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout);
                         if (t == -1)
-                            perror("Select Failed\n");
+                            perror("Server - [Select Failed]\n");
 
                         if (rACK.SYN == true)
                         {
+                            printf("Server - [SYN received] attempt %d\n", n);
                             state = 1;
                             n = 0;
                             break;
                         } else n++;
-                    } while (n <= 10);
+                    } while (n <= 3);
 
                 case 1: //Send ACK + SEQ then wait for final ACK
                     do
@@ -101,14 +102,16 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
                         sACK.SEQ = 13; //Will be changed to a generated number
                         /*Sending ACk and SEQ */
                         ingsoc_writeMessage(*sock, &sACK, sizeof(sACK), clientInfo);
+                        printf("Server - [ACK sent]\n");
                         /* Waiting for final ACK */
                         ingsoc_readMessage(*sock, &rACK, clientInfo);
                         t = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout);
                         if (t == -1)
-                            perror("Select Failed\n");
+                            perror("Server - [Select Failed]\n");
 
                         if(rACK.ACK == true)
                         {
+                            printf("Server - [Final ACK received] attempt %d\n", n);
                             state = 2;
                             n = 0;
                             break;
@@ -116,7 +119,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
                         else n++;
                     }while(n <= 10);
                 case 2:
-                    printf("Threeway handshake succesfull, you are now connected.\n");
+                    printf("Server - [Three-way handshake successful]\n");
                     break;
             }
         }
