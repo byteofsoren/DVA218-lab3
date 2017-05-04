@@ -50,8 +50,8 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
 
 int _connect(const char *addres)
 {
-    char buffer[MAXMSG];
-    int nBytes = 0;
+    //char buffer[MAXMSG];
+    //int nBytes = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
     if(sock < 0){
