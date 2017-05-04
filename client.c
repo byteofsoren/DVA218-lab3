@@ -135,6 +135,16 @@ int _connect(const char *addres)
     return 0;
 }
 
+int _disConect()
+{
+    // Send FIN
+    // wait for FIN + ACK
+    // Send ACK + FIN
+    // close
+    
+    return 0;
+}
+
 void client_main(char *addres)
 {
     _connect(addres);
