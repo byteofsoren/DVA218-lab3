@@ -56,7 +56,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
 {
     int nOfBytes = 0;
     struct timeval timeout;
-    int state = 0;
+    int state = 8;
     int n = 0;
     int t;
     ingsoc rACK, sACK;
@@ -69,7 +69,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
         timeout.tv_sec = 10;
         fd_set readFdSet = *activeFdSet;
 
-        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timeout) < 0)
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0)
         {
             perror("Server - [Select Failed]\n");
             exit(EXIT_FAILURE);
@@ -77,6 +77,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
 
         if (FD_ISSET(*sock, &readFdSet))
         {
+            printf("fucking kuk\n");
             switch (state) {
 
                 case 0: //Waiting for SYN
@@ -89,7 +90,7 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo)
                         if (rACK.SYN == true)
                         {
                             printf("Server - [SYN received] attempt %d\n", n);
-                            state = 1;
+                            //state = 1;
                             n = 0;
                             break;
                         } else n++;
@@ -135,11 +136,13 @@ void Server_Main(int arg){
     int sock;
     struct sockaddr_in  clientInfo;
     int nOfBytes = 0;
-    fd_set activeFdSet; /* Used by select */
+    char buffer[MAXMSG];
+    fd_set readFdSet, activeFdSet; /* Used by select */
+    sock = make_Socket4(PORT);
     FD_ZERO(&activeFdSet);
     FD_SET(sock,&activeFdSet);
 /* Create a socket and set it up to accept connections */
-    sock = make_Socket4(PORT);
+
 
     /* Initialize the set of active sockets */
 
