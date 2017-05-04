@@ -99,13 +99,20 @@ int _connect(const char *addres)
                     struct timeval timer;
                     timer.tv_sec=10;
                     timer.tv_usec=5000;
-                    int t = select(0+1, &clientFD, NULL, NULL, &timer);
+                    int t = select(5, &clientFD, NULL, NULL, &timer);
                     if (t == -1) {
                         perror("select");
                     }
                     if (FD_ISSET(FD_SOCKET, &clientFD)) {
                         ingsoc rAck;
                         ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+                        if (rAck.ACK) {
+                            printf("ACK reseved");
+                            state = 1;
+                        }else{
+                            printf("!ACK recived");
+                            exit(EXIT_FAILURE);
+                        }
                         // Read from socket.
                         // om ACk -> state = 1;
                         // om ej ACK -> exit
