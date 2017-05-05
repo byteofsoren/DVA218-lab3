@@ -16,6 +16,18 @@ void ingsoc_init(ingsoc *insoci)
     insoci->data=0;
 }
 
+void ingsoc_seqnr(ingsoc *in)
+{
+    static size_t startNr=0;
+    if(startNr == 0){
+        startNr = randombytes_uniform(2147483647) + 10;
+    }else{
+        startNr++;
+    }
+    in->SEQ = startNr;
+
+}
+
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info){
 
     unsigned nOfBytes = sizeof(*host_info);
