@@ -94,7 +94,6 @@ int _connect(const char *address)
 
                     ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
                     printf("Client - [SYN sent]\n");
-                    usleep(3000000);
 
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
