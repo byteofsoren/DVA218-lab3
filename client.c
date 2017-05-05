@@ -145,6 +145,12 @@ int _connect(const char *addres)
                 // send ack to server 
                 // fin
                 running = 0;
+
+                //break;
+            case 2:
+                //Send reject
+                break;
+
         }
     }
     return 0;
