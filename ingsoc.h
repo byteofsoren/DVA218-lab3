@@ -23,6 +23,8 @@
 #include <string.h>
 #include <net/if.h>
 #include "server.h"
+#include <time.h>
+#include <sodium.h>
 
 #define PORT 5555
 #define MAXMSG 512
@@ -44,6 +46,7 @@ typedef struct{
 
 }ingsoc;
 void ingsoc_init(ingsoc *ingsoc_i);
+void ingsoc_seqnr(ingsoc *in);
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info);
 void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sockaddr_in *host_info);
 int checkSum(void *data, int length, int error);
