@@ -53,13 +53,86 @@ int make_Socket4(unsigned short int port) {
 }
 
 
-void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo) {
-    
+void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo) {
+
+    printf("Hej nu är det dags för connect!\n");
+
+    ingsoc toWrite, toRead;
+    int state = 0;
+    int running = 1;
+    int n = 0;
+    struct timeval timer;
+
+    fd_set readFdSet;
+
+    do {
+        switch (state) {
+            /* case 0 - Waiting for SYN from client */
+            case 0:
+                readFdSet = *activeFdSet;
+
+                if(select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0)
+                    perror("Server - Select failure");
+
+                if(FD_ISSET(*fileDescriptor, &readFdSet))
+                {
+                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+
+                    if(toRead.SYN == true)
+                    {
+                        printf("Server - SYN received\n");
+                        state = 1;
+                        break;
+                    }
+                    else if(toRead.SYN != true)
+                        break;
+                }
+                break;
+            /* case 1 - Send SYN + ACK to client and SEQ nr, then wait for final ACK */
+            case 1:
+
+                ingsoc_init(&toWrite);
+                toWrite.ACK = true;
+                toWrite.SYN = true;
+                toWrite.SEQ = 1;            //Needs to be generated, fix later
+
+                do {
+                    ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+
+                    timer.tv_sec = 10;
+                    readFdSet = *activeFdSet;
+                    if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                        perror("Server - Select failure");
+
+                    if(FD_ISSET(*fileDescriptor, &readFdSet))
+                    {
+                        ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+
+                        if(toRead.ACK == true)
+                        {
+                            printf("Server - final ACK received\n");
+                            state = 2;
+                            break;
+                        }
+                        else if(toRead.ACK != true) {
+                            printf("Server - ACK not received, attempt: %d", n + 1);
+                            n++;
+                        }
+                    }
+                }while(n <= 5);
+                break;
+            case 2:
+                printf("Server - Three-way handshake successful\n");
+                running = 0;
+                break;
+        }
+    }while(running == 1);
+    //SlidingWindowProtocol();
 }
 
 void Server_Main(int arg){
     int sock;
-    struct sockaddr_in  clientInfo;
+    struct sockaddr_in  hostInfo;
     int nOfBytes = 0;
     char buffer[MAXMSG];
     fd_set readFdSet, activeFdSet; /* Used by select */
@@ -68,12 +141,11 @@ void Server_Main(int arg){
     FD_SET(sock,&activeFdSet);
 /* Create a socket and set it up to accept connections */
 
-
     /* Initialize the set of active sockets */
 
     printf("\n[waiting for connections...]\n");
 
-    connection(&sock,&activeFdSet,&clientInfo);
+    Threeway(&sock, &activeFdSet, &hostInfo);
 
 }
 
