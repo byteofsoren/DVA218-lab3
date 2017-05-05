@@ -55,7 +55,7 @@ int make_Socket4(unsigned short int port) {
 void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo) {
     int nOfBytes = 0;
     struct timeval timeout;
-    int state = 8;
+    int state = 0;
     int n = 0;
     int t;
     int running = 1;
@@ -72,52 +72,51 @@ void connection(int *sock, fd_set *activeFdSet, struct sockaddr_in *clientInfo) 
         if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0) {
             perror("Server - [Select Failed]\n");
             exit(EXIT_FAILURE);
-        } else state = 0;
+        }
 
         if (FD_ISSET(*sock, &readFdSet)) {
             printf("Server - [Starting three-way handshake]\n");
-            do {
-                switch (state) {
 
-                    /* Waiting for SYN from client */
-                    case 0:
+            switch (state) {
 
-                        do {
-                            ingsoc_readMessage(*sock, &rACK, clientInfo);
+                /* Waiting for SYN from client */
+                case 0:
+                    do {
+                        ingsoc_readMessage(*sock, &rACK, clientInfo);
 
-                            if (rACK.SYN == true) {
-                                printf("Server - [SYN received] attempt %d\n", n + 1);
-                                state = 1;
-                                n = 0;
-                                break;
-                            } else n++;
-                        } while (n <= 3);
-                        break;
+                        if (rACK.SYN == true) {
+                            printf("Server - [SYN received] attempt %d\n", n + 1);
+                            state = 1;
+                            n = 0;
+                            break;
+                        } else n++;
+                    } while (n <= 3);
+                    break;
 
-                    case 1: //Send ACK + SEQ then wait for final ACK
-                        do {
-                            sACK.ACK = true;
-                            sACK.SEQ = 13;
-                            /*Sending ACk and SEQ */
-                            ingsoc_writeMessage(*sock, &sACK, sizeof(sACK), clientInfo);
-                            printf("Server - [ACK and SEQ sent]\n");
-                            /* Waiting for final ACK */
-                            ingsoc_readMessage(*sock, &rACK, clientInfo);
+                case 1: //Send ACK + SEQ then wait for final ACK
+                    do {
+                        sACK.ACK = true;
+                        sACK.SEQ = 13;
+                        /*Sending ACk and SEQ */
+                        ingsoc_writeMessage(*sock, &sACK, sizeof(sACK), clientInfo);
+                        printf("Server - [ACK and SEQ sent]\n");
+                        /* Waiting for final ACK */
+                        ingsoc_readMessage(*sock, &rACK, clientInfo);
 
-                            if (rACK.ACK == true) {
-                                printf("Server - [Final ACK received] attempt %d\n", n);
-                                state = 2;
-                                n = 0;
-                                break;
-                            } else n++;
-                        } while (n <= 3);
-                        break;
-                    case 2:
-                        printf("Server - [Three-way handshake successful]\n");
-                        running = 0;
-                        break;
-                }
-            } while (running == 1);
+                        if (rACK.ACK == true) {
+                            printf("Server - [Final ACK received] attempt %d\n", n);
+                            state = 2;
+                            n = 0;
+                            break;
+                        } else n++;
+                    } while (n <= 3);
+                    break;
+                case 2:
+                    printf("Server - [Three-way handshake successful]\n");
+                    running = 0;
+                    break;
+            }
+
         }
     }
 }
