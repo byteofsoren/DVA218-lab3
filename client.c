@@ -7,7 +7,8 @@
 
 char HW_CONNECT[200] = "wlp1s0";
 int FD_SOCKET;
-
+struct sockaddr_in serverName;
+fd_set _ClientFD;
 void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
   /* Socket address format set to AF_INET for Internet use. */
@@ -34,6 +35,21 @@ void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned sho
   name->sin6_addr = *(struct in6_addr *)hostInfo->h_addr;
 }
 
+void _waitfor_socket()
+{
+    FD_ZERO(&_ClientFD);
+    FD_SET(FD_SOCKET, &_ClientFD);
+    struct timeval timer;
+    timer.tv_sec=10;
+    timer.tv_usec=5000;
+    int t = 0;
+    t = select(FD_SETSIZE, &_ClientFD, NULL, NULL, &timer);
+    if (t == -1) {
+        printf("Error in select");
+        exit(EXIT_FAILURE);
+    }
+}
+
 void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned short int port)
 {
     // A re implementation for iPV4
@@ -46,23 +62,20 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
         exit(EXIT_FAILURE);
     }
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
-
 }
 
-int _connect(const char *address)
+int _connect(const char *addres)
 {
     //char buffer[MAXMSG];
     //int nBytes = 0;
     int sock = 0;
     sock = socket(PF_INET, SOCK_DGRAM, 0);
     if(sock < 0){
-        perror("Could not create a socket\n");
+        perror("Could not create a socet\n");
         exit(EXIT_FAILURE);
     }
     FD_SOCKET = sock;
-    struct sockaddr_in serverName;
-    _initSocketAddress(&serverName, address, PORT);
-    //int nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
+    _initSocketAddress(&serverName, addres, PORT);
     //_writeMessage(sock, "Hello Hampus");
   /*
     nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
@@ -71,18 +84,17 @@ int _connect(const char *address)
     nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
     printf("%s\n",buffer);
   */
-
+  
     short state = 0;
     bool running = 1;
     int counter = 10;
-    int t;
-
     while(running){
         switch (state) {
             case 0:
                 do{
+                    //send syn
                     ingsoc sSyn;
-                    sSyn.clientID = getpid();
+                    sSyn.clientID=getpid();
                     sSyn.ACK = false;
                     sSyn.FIN = false;
                     sSyn.RES = false;
@@ -91,61 +103,84 @@ int _connect(const char *address)
                     sSyn.length = 0;
                     sSyn.data = 0;
                     sSyn.SYN = true;
+                    //_writeMessage(FD_SOCKET, (char*)&sSyn);
 
                     ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
-                    printf("Client - [SYN sent]\n");
 
                     fd_set clientFD;
                     FD_ZERO(&clientFD);
                     FD_SET(FD_SOCKET, &clientFD);
-
                     struct timeval timer;
-                    timer.tv_sec = 10;
-                    timer.tv_usec = 5000;
-
-                    t = select(5, &clientFD, NULL, NULL, &timer);
-                    if (t == -1)
-                        perror("Client - [Select failed]\n");
-
-
-                    if (FD_ISSET(FD_SOCKET, &clientFD))
-                    {
+                    timer.tv_sec=10;
+                    timer.tv_usec=5000;
+                    int t = select(FD_SETSIZE, &clientFD, NULL, NULL, &timer);
+                    if (t == -1) {
+                        perror("select");
+                    }
+                    if (FD_ISSET(FD_SOCKET, &clientFD)) {
                         ingsoc rAck;
                         ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
                         FD_CLR(FD_SOCKET, &clientFD);
-
-                        if (rAck.ACK)
-                        {
-                            printf("Client - [ACK received] attempt %d\n" ,10-counter);
+                        if (rAck.ACK) {
+                            printf("ACK reseved");
                             state = 1;
-                            break;
-                        }else
-                        {
-                            printf("Client - [ACK corrupt]");
-                            //Go to reject state <----------------
+                        }else{
+                            printf("!ACK recived");
                             exit(EXIT_FAILURE);
                         }
-                    }
-                    else
-                    {
-                        printf("Timeout counter is now %d\n", counter);
+                        // Read from socket.
+                        // om ACk -> state = 1;
+                        // om ej ACK -> exit
+                    }else{
+                        printf("Time out counter is now %d\n", counter);
                         counter--;
-                        if(counter == 0)
-                            exit(EXIT_FAILURE);
+                        if(counter == 0) exit(EXIT_FAILURE);
                     }
+                    //Recive ack
+                    //or time out
                 }while(1);
                 state = 1;
                 break;
             case 1:
-                // Send final ACK to server
-                printf("Client - [Three-way Handshake successful]\n");
+                // send ack to server 
+                // fin
                 running = 0;
+
                 //break;
             case 2:
                 //Send reject
                 break;
+
         }
     }
+    return 0;
+}
+
+int _disConect()
+{
+    // Send FIN
+    ingsoc sFin;
+    ingsoc_init(&sFin);
+    sFin.FIN = true;
+    int running = 1;
+    ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
+    do{
+        _waitfor_socket();
+        if (FD_ISSET(FD_SOCKET, &_ClientFD )) {
+            // Reads message for server.
+            ingsoc rAck;
+            ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+            if (rAck.ACK == true && rAck.FIN == true) {
+                running = 0;
+                sFin.ACK = true;
+                ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
+                // Do i need tto do any discconecting on UDP?
+            }
+        }
+    }while(running);
+    // wait for FIN + ACK
+    // Send ACK + FIN
+    // close
     return 0;
 }
 
@@ -153,4 +188,5 @@ void client_main(char *addres)
 {
     _connect(addres);
     //_writeMessage(sock, "Hello Hampus");
+    _disConect();
 }
