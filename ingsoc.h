@@ -24,7 +24,6 @@
 #include <net/if.h>
 #include "server.h"
 #include <time.h>
-#include <sodium.h>
 
 #define PORT 5555
 #define MAXMSG 512
