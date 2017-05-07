@@ -82,10 +82,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                     {
                         printf("Server - SYN received\n");
                         state = 1;
-                        break;
                     }
-                    else if(toRead.SYN != true)
-                        break;
                 }
                 break;
             /* case 1 - Send SYN + ACK to client and SEQ nr, then wait for final ACK */
