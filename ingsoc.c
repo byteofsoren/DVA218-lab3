@@ -17,7 +17,7 @@ void ingsoc_init(ingsoc *insoci)
 }
 
 
-size_t ingsoc_randomNr(int min, int max){
+size_t ingsoc_randomNr(size_t min, size_t max){
 // This is my random number generator
   size_t result = 0 , low = 0 ,hig = 0;
   static int oneTime = 0;   // Srand patch
@@ -47,13 +47,12 @@ void ingsoc_seqnr(ingsoc *in)
 {
     static size_t startNr=0;
     if(startNr == 0){
-      
-        startNr = ingsoc_randomNr(10,INT_MAX);
-
+        startNr = ingsoc_randomNr(10,2000000000);
     }else{
         startNr++;
     }
     in->SEQ = startNr;
+
 
 }
 
