@@ -53,6 +53,7 @@ void ingsoc_seqnr(ingsoc *in)
     }
     in->SEQ = startNr;
 
+
 }
 
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info){

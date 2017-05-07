@@ -95,8 +95,8 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
 
                 do {
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-
-                    timer.tv_sec = 10;
+                    printf("Server - ACK + SYN sent\n");
+                    timer.tv_sec = 20;
                     readFdSet = *activeFdSet;
                     if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                         perror("Server - Select failure");
@@ -115,6 +115,9 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                             printf("Server - ACK not received, attempt: %d", n + 1);
                             n++;
                         }
+                    }
+                    else{
+                        printf("Timeout\n");
                     }
                 }while(n <= 5);
                 break;

@@ -44,6 +44,7 @@ typedef struct{
     void *data;
 
 }ingsoc;
+
 void ingsoc_init(ingsoc *ingsoc_i);
 void ingsoc_seqnr(ingsoc *in);
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info);
