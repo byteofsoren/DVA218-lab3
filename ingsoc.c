@@ -47,7 +47,9 @@ void ingsoc_seqnr(ingsoc *in)
 {
     static size_t startNr=0;
     if(startNr == 0){
+      
         startNr = ingsoc_randomNr(10,INT_MAX);
+
     }else{
         startNr++;
     }
