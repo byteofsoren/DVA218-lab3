@@ -20,7 +20,7 @@ void ingsoc_seqnr(ingsoc *in)
 {
     static size_t startNr=0;
     if(startNr == 0){
-        startNr = randombytes_uniform(2147483647) + 10;
+        //startNr = randombytes_uniform(2147483647) + 10;
     }else{
         startNr++;
     }

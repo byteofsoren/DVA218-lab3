@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 project(dva218-lab3)
 
 set(CMAKE_C_STANDARD 99)
+include(~/libsodium/contrib/Findsodium.cmake)
 
 set(SOURCE_FILES main.c server.c client.c ingsoc.c)
 add_executable(dva218-lab3 ${SOURCE_FILES})
