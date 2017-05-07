@@ -119,7 +119,7 @@ int _connect(const char *addres) {
                 if (FD_ISSET(FD_SOCKET, &sock)) {
                     ingsoc rAck;
                     ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
-                    FD_CLR(FD_SOCKET, &sock);
+
                     if (rAck.ACK == true && rAck.SYN == true) {
                         printf("ACK + SYN recived\n");
                         state = 1;
