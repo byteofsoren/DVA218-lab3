@@ -4,7 +4,6 @@
 
 int main(int argc, char *argv[])
 {
-
     char hostname[HOSTNAMELENGHT];
 
     printf("Hello World!\n");

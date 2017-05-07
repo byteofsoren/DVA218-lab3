@@ -1,6 +1,6 @@
 
 #include "ingsoc.h"
-
+#include <sodium.h>
 
 void ingsoc_init(ingsoc *insoci)
 {
@@ -16,15 +16,43 @@ void ingsoc_init(ingsoc *insoci)
     insoci->data=0;
 }
 
+
+size_t ingsoc_randomNr(size_t min, size_t max){
+// This is my random number generator
+  size_t result = 0 , low = 0 ,hig = 0;
+  static int oneTime = 0;   // Srand patch
+
+  if ( min < max) {
+    low = min;
+    hig = max + 1;        // include the max result in the output
+  }  else {
+    low = max + 1;        // include the max result in the output
+    hig = min;
+  }
+  if (oneTime == 0) {     // you only run srand 1 time.
+    srand(time(NULL));
+    oneTime++;
+  }
+  result = rand() % (hig - low)+ low;  /* What this do is better expalined with an exampel.
+  Lest say you get;
+    rand()=234532   hig=20    low=5
+    first evaluet (hig-low)=15
+    then 234532 % 15 = 7
+    last 7 + 5 = 12  */
+  return result;
+}
+
+
 void ingsoc_seqnr(ingsoc *in)
 {
     static size_t startNr=0;
     if(startNr == 0){
-        startNr = randombytes_uniform(2147483647) + 10;
+        startNr = ingsoc_randomNr(10,2000000000);
     }else{
         startNr++;
     }
     in->SEQ = startNr;
+
 
 }
 
