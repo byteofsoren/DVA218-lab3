@@ -120,11 +120,11 @@ int _connect(const char *addres) {
                     ingsoc rAck;
                     ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
                     FD_CLR(FD_SOCKET, &sock);
-                    if (rAck.ACK == true) {
-                        printf("ACK reseved\n");
+                    if (rAck.ACK == true && rAck.SYN == true) {
+                        printf("ACK + SYN recived\n");
                         state = 1;
                     } else {
-                        printf("!ACK recived\n");
+                        printf("!ACK + SYN recived\n");
                         exit(EXIT_FAILURE);
                     }
                     // Read from socket.
