@@ -71,7 +71,7 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
     do {
         readFdSet = *activeFdSet;
 
-        ingsoc_writeMessage(fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+        ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
         printf("Server - FIN+ACK sent\n");
 
         timer.tv_sec = 5;
@@ -79,7 +79,7 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
             perror("Server - Select failure");
 
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            ingsoc_readMessage(fileDescriptor, &toRead, hostInfo);
+            ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
 
             if (toRead.ACK == true)
             {
@@ -193,47 +193,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
 }
 /* disconnect - This function is initialized when the server receives a FIN (disconnect request)
  * from the client*/
-int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo)
-{
 
-    ingsoc toRead, toWrite;
-    int n = 0;
-    struct timeval timer;
-    fd_set readFdSet;
-
-    ingsoc_init(&toRead);
-    ingsoc_init(&toWrite);
-
-    toWrite.ACK = true;
-    toWrite.FIN = true;
-
-
-    do {
-        readFdSet = *activeFdSet;
-
-        ingsoc_writeMessage(fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-        printf("Server - FIN+ACK sent\n");
-
-        timer.tv_sec = 5;
-        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
-            perror("Server - Select failure");
-
-        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            ingsoc_readMessage(fileDescriptor, &toRead, hostInfo);
-
-            if (toRead.ACK == true)
-            {
-                printf("Server - FIN ACK received, disconnecting.\n");
-            }
-            else
-            {
-                printf("Server - timeout %d", n + 1);
-                n++;
-            }
-        }
-    }while(n <= 3);
-
-}
 
 void Server_Main(int arg){
     int sock;
