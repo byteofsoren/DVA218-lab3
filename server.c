@@ -27,8 +27,6 @@ int make_Socket6(unsigned short int port) {
     }
     return (sock);
 }
-
-
 int make_Socket4(unsigned short int port) {
     int sock;
     struct sockaddr_in name;
@@ -100,9 +98,7 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
  * activeFdSet - List of active FDs (which is only one, port 5555)
  * hostInfo - struct for handling internet addresses */
 void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo) {
-
-    printf("Hej nu är det dags för connect!\n");
-
+    
     ingsoc toWrite, toRead;
     int state = 0;
     int running = 1;
@@ -145,8 +141,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                     toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
                     printf("checksum: %d\n", toWrite.cksum);
 
-
-
+                do {
                     /* Sends the SYN+ACK package to client */
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                     printf("Server - ACK + SYN sent\n");
@@ -164,7 +159,6 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                         if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
                             printf("Server - final ACK received\n");
                             state = 2;
-
                         }
 
                             /* If for some reason the package is lost or something else is
@@ -178,7 +172,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                     } else {
                         printf("Timeout\n");
                     }
-                }
+                }while(state == 1 && n <= 3);
 
                 break;
 
@@ -193,10 +187,6 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
     }while(running == 1);
     //SlidingWindowProtocol();
 }
-/* disconnect - This function is initialized when the server receives a FIN (disconnect request)
- * from the client*/
-
-
 void Server_Main(int arg){
     int sock;
     struct sockaddr_in  hostInfo;

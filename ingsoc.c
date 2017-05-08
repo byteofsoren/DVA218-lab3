@@ -50,6 +50,25 @@ void ingsoc_seqnr(ingsoc *in)
 
 
 }
+void input(char* msg)		//my input function from user
+{
+    char dummy;
+
+    fgets(msg, 1024, stdin);
+
+    if (*(msg + (strlen(msg) - 1)) == '\n')		//if the last char is \n. Changes it to \0
+    {
+        *(msg + (strlen(msg) - 1)) = '\0';
+    }
+    else		//if the last char is not \n
+    {
+        do
+        {   // loop until the new-line is read to remove keyboard buffer
+            dummy = getchar();
+        } while (dummy != '\n');
+
+    }
+}
 
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info){
 
