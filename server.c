@@ -51,6 +51,49 @@ int make_Socket4(unsigned short int port) {
     }
     return(sock);
 }
+/* server_disconnect - This function is initialized when the server receives a FIN (disconnect request)
+ * from the client*/
+int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo)
+{
+
+    ingsoc toRead, toWrite;
+    int n = 0;
+    struct timeval timer;
+    fd_set readFdSet;
+
+    ingsoc_init(&toRead);
+    ingsoc_init(&toWrite);
+
+    toWrite.ACK = true;
+    toWrite.FIN = true;
+
+
+    do {
+        readFdSet = *activeFdSet;
+
+        ingsoc_writeMessage(fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+        printf("Server - FIN+ACK sent\n");
+
+        timer.tv_sec = 5;
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+            perror("Server - Select failure");
+
+        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+            ingsoc_readMessage(fileDescriptor, &toRead, hostInfo);
+
+            if (toRead.ACK == true)
+            {
+                printf("Server - FIN ACK received, disconnecting.\n");
+            }
+            else
+            {
+                printf("Server - timeout %d", n + 1);
+                n++;
+            }
+        }
+    }while(n <= 3);
+
+}
 /* Threeway - This is the server part of the threeway handshake
  * Inputs:
  * fileDescriptor - Socket handle
@@ -135,7 +178,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                         printf("Timeout\n");
                     }
                 }while(n <= 5);
-                break
+                break;
 
             case 2:
                 /* This is the final state, once we get here the client and server is
@@ -147,6 +190,49 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
         }
     }while(running == 1);
     //SlidingWindowProtocol();
+}
+/* disconnect - This function is initialized when the server receives a FIN (disconnect request)
+ * from the client*/
+int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo)
+{
+
+    ingsoc toRead, toWrite;
+    int n = 0;
+    struct timeval timer;
+    fd_set readFdSet;
+
+    ingsoc_init(&toRead);
+    ingsoc_init(&toWrite);
+
+    toWrite.ACK = true;
+    toWrite.FIN = true;
+
+
+    do {
+        readFdSet = *activeFdSet;
+
+        ingsoc_writeMessage(fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+        printf("Server - FIN+ACK sent\n");
+
+        timer.tv_sec = 5;
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+            perror("Server - Select failure");
+
+        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+            ingsoc_readMessage(fileDescriptor, &toRead, hostInfo);
+
+            if (toRead.ACK == true)
+            {
+                printf("Server - FIN ACK received, disconnecting.\n");
+            }
+            else
+            {
+                printf("Server - timeout %d", n + 1);
+                n++;
+            }
+        }
+    }while(n <= 3);
+
 }
 
 void Server_Main(int arg){
@@ -161,6 +247,8 @@ void Server_Main(int arg){
 /* Create a socket and set it up to accept connections */
 
     /* Initialize the set of active sockets */
+
+    //server_disconnect(&sock, &activeFdSet, &hostInfo);
 
     printf("\n[waiting for connections...]\n");
 
