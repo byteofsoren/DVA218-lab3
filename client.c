@@ -37,17 +37,6 @@ void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned sho
 
 void _waitfor_socket()
 {
-    FD_ZERO(&_sock);
-    FD_SET(FD_SOCKET, &_sock);
-    struct timeval timer;
-    timer.tv_sec=10;
-    timer.tv_usec=5000;
-    int t = 0;
-    t = select(FD_SETSIZE, &_sock, NULL, NULL, &timer);
-    if (t == -1) {
-        printf("Error in select");
-        exit(EXIT_FAILURE);
-    }
 }
 
 void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned short int port)
@@ -87,6 +76,7 @@ int _connect(const char *addres) {
     short state = 0;
     bool running = 1;
     int counter = 10;
+    size_t ACK_NR = 0;
     ingsoc sSyn;
     while (running) {
         switch (state) {
@@ -122,6 +112,10 @@ int _connect(const char *addres) {
                     ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
 
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
+
+                        ACK_NR = rAck.SEQ;
+
+
                         printf("ACK + SYN recived\n");
                         state = 1;
                     } else {
@@ -138,15 +132,40 @@ int _connect(const char *addres) {
                 }
                 //Recive ack
                 //or time out
-
-            case 1:
+                break;
+            case 1:{
+                ingsoc sACK;
+                ingsoc_init(&sACK);
+                sACK.ACK = true;
+                sACK.ACKnr = ACK_NR;
+                ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
+                fd_set sock;
+                FD_ZERO(&sock);
+                FD_SET(FD_SOCKET, &sock);
+                struct timeval timer;
+                timer.tv_sec = 10;
+                printf("Reading socket in final state\n");
+                int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+                if(stemp == -1) perror("select");
+                if(FD_ISSET(FD_SOCKET, &sock)){
+                    ingsoc rACK;
+                    ingsoc_readMessage(FD_SOCKET, &rACK, &serverName);
+                    if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
+                        printf("Recived ACK + SYN in final state\n");
+                    }
+                }else{
+                    // time out exits the loop
+                    running = 0;    // Stops the program
+                }
 
                 break;
+            }
         }
     }
+    return 0;
 }
 
-int _disConect()
+int _disConnect()
 {
     // Send FIN
     ingsoc sFin;
@@ -154,20 +173,26 @@ int _disConect()
     sFin.FIN = true;
     int running = 1;
     ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
-    do{
-        _waitfor_socket();
-        if (FD_ISSET(FD_SOCKET, &_sock )) {
-            // Reads message for server.
-            ingsoc rAck;
-            ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
-            if (rAck.ACK == true && rAck.FIN == true) {
-                running = 0;
-                sFin.ACK = true;
-                ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
-                // Do i need tto do any discconecting on UDP?
-            }
+    fd_set sock;
+    FD_ZERO(&sock);
+    FD_SET(FD_SOCKET, &sock);
+    struct timeval timer;
+    timer.tv_sec = 10;
+    printf("Waiting for fin + ack\n");
+    int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+    if(stemp == -1) perror("select");
+    if (FD_ISSET(FD_SOCKET, &_sock )) {
+        // Reads message for server.
+        ingsoc rAck;
+        ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+        if (rAck.ACK == true && rAck.FIN == true) {
+            printf("Recived fin + ack");
+            running = 0;
+            sFin.ACK = true;
+            ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
+            // Do i need tto do any discconecting on UDP?
         }
-    }while(running);
+    }
     // wait for FIN + ACK
     // Send ACK + FIN
     // close
@@ -178,5 +203,5 @@ void client_main(char *addres)
 {
     _connect(addres);
     //_writeMessage(sock, "Hello Hampus");
-    _disConect();
+    _disConnect();
 }

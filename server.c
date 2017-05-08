@@ -111,19 +111,22 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
 
                     if(FD_ISSET(*fileDescriptor, &readFdSet))
                     {
-                        ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+
                         /* After sending SYN+ACK and receving the final ack from client
                          * it will proceed to the next state, which is the final state */
-                        if(toRead.ACK == true)
+                        if(toRead.ACK == true && toRead.ACKnr == toWrite.SEQ)
+
                         {
                             printf("Server - final ACK received\n");
                             state = 2;
                             break;
                         }
+
                         /* If for some reason the package is lost or something else is
                          * received, it will add 1 to a counter and resend the SYN+ACK
                          * package, after n timeouts it will exit this state */
-                        else if(toRead.ACK != true) {
+
+                        else{
                             printf("Server - ACK not received, attempt: %d", n + 1);
                             n++;
                         }
