@@ -1,6 +1,6 @@
 
 #include "ingsoc.h"
-#include <sodium.h>
+
 
 void ingsoc_init(ingsoc *insoci)
 {
