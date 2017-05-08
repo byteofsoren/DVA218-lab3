@@ -87,6 +87,7 @@ int _connect(const char *addres) {
     short state = 0;
     bool running = 1;
     int counter = 10;
+    size_t ACK_NR = 0;
     ingsoc sSyn;
     while (running) {
         switch (state) {
@@ -122,6 +123,7 @@ int _connect(const char *addres) {
                     ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
 
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACK == sSyn.SEQ) {
+                        ACK_NR = rAck.ACK;
                         printf("ACK + SYN recived\n");
                         state = 1;
                     } else {
@@ -138,12 +140,35 @@ int _connect(const char *addres) {
                 }
                 //Recive ack
                 //or time out
-
-            case 1:
+                break;
+            case 1:{
+                ingsoc sACK;
+                ingsoc_init(&sACK);
+                sACK.SEQ = ACK_NR;
+                ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
+                fd_set sock;
+                FD_ZERO(&sock);
+                FD_SET(FD_SOCKET, &sock);
+                struct timeval timer;
+                timer.tv_sec = 10;
+                int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+                if(stemp == -1) perror("select");
+                if(FD_ISSET(FD_SOCKET, &sock)){
+                    ingsoc rACK;
+                    ingsoc_readMessage(FD_SOCKET, &rACK, &serverName);
+                    if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
+                        printf("Recived ACK + SYN in final state\n");
+                    }
+                }else{
+                    // time out exits the loop
+                    running = 0;    // Stops the program
+                }
 
                 break;
+            }
         }
     }
+    return 0;
 }
 
 int _disConect()
