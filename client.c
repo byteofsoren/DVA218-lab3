@@ -158,6 +158,7 @@ int _connect(const char *addres) {
                 }else{
                     // time out exits the loop
                     running = 0;    // Stops the program
+                    printf("No duplicate packets...continuing to sliding Windows\n");
                 }
 
                 break;
