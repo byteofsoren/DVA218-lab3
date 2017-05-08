@@ -167,7 +167,7 @@ int _connect(const char *addres) {
 
 int _disConnect()
 {
-    // Send FIN
+    /* This is the disconect functino */
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
