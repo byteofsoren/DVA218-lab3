@@ -107,13 +107,13 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                     {
                         ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
 
-                        if(toRead.ACK == true)
+                        if(toRead.ACK == true && toRead.ACKnr == toWrite.SEQ)
                         {
                             printf("Server - final ACK received\n");
                             state = 2;
                             break;
                         }
-                        else if(toRead.ACK != true) {
+                        else{
                             printf("Server - ACK not received, attempt: %d", n + 1);
                             n++;
                         }
