@@ -114,9 +114,12 @@ int _connect(const char *addres) {
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
                         ACK_NR = rAck.SEQ;
-
-
+                        int csum1 = rAck.cksum;
+                        rAck.cksum = 0;
+                        int csum = checkSum(&rAck,sizeof(rAck),0);
+                        printf("skickad %d, räknad %d\n",csum1,csum);
                         printf("ACK + SYN recived\n");
+
                         state = 1;
                     } else {
                         printf("!ACK + SYN recived\n");
