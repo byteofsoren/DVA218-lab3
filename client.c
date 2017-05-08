@@ -6,9 +6,9 @@
 #define MAXMSG 512
 
 char HW_CONNECT[200] = "wlp1s0";
-int FD_SOCKET;
-struct sockaddr_in serverName;
-fd_set _sock;
+int FDGFD_SETET;
+struct sockaddr_in SERVER_NAME;
+fd_set GFD_SET;
 void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
   /* Socket address format set to AF_INET for Internet use. */
@@ -35,7 +35,7 @@ void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned sho
   name->sin6_addr = *(struct in6_addr *)hostInfo->h_addr;
 }
 
-void _waitfor_socket()
+void _waitforGFD_SETet()
 {
 }
 
@@ -56,30 +56,30 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
 int _connect(const char *addres) {
     //char buffer[MAXMSG];
     //int nBytes = 0;
-    int FD_SOCKET = 0;
-    FD_SOCKET = socket(PF_INET, SOCK_DGRAM, 0);
-    if (FD_SOCKET < 0) {
+    int FDGFD_SETET = 0;
+    FDGFD_SETET = socket(PF_INET, SOCK_DGRAM, 0);
+    if (FDGFD_SETET < 0) {
         perror("Could not create a socet\n");
         exit(EXIT_FAILURE);
     }
-    _initSocketAddress(&serverName, addres, PORT);
+    _initSocketAddress(&SERVER_NAME, addres, PORT);
     //_writeMessage(sock, "Hello Hampus");
     /*
-      nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
+      nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &SERVER_NAME,sizeof(SERVER_NAME));
       usleep(10000);
-      int fucktard = sizeof(serverName);
-      nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
+      int fucktard = sizeof(SERVER_NAME);
+      nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &SERVER_NAME ,&(fucktard));
       printf("%s\n",buffer);
     */
 
     short state = 0;
-    fd_set sock;
+    //fd_set sock;
     bool running = 1;
     int counter = 10;
     size_t ACK_NR = 0;
     ingsoc sSyn;
-    FD_ZERO(&sock);
-    FD_SET(FD_SOCKET, &sock);
+    FD_ZERO(&GFD_SET);
+    FD_SET(FDGFD_SETET, &GFD_SET);
     while (running) {
         switch (state) {
             case 0:
@@ -95,21 +95,23 @@ int _connect(const char *addres) {
                 sSyn.length = 0;
                 sSyn.data = 0;
                 sSyn.SYN = true;
-                //_writeMessage(FD_SOCKET, (char*)&sSyn);
+                //_writeMessage(FDGFD_SETET, (char*)&sSyn);
                 ingsoc_seqnr(&sSyn);
 
-                ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
+                ingsoc_writeMessage(FDGFD_SETET, &sSyn, sizeof(sSyn), &SERVER_NAME);
 
 
                 struct timeval timer;
-                timer.tv_sec = 10;
-                int t = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+                timer.tv_sec = 1;
+                FD_ZERO(&GFD_SET);
+                FD_SET(FDGFD_SETET,&GFD_SET);
+                int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                 if (t == -1) {
                     perror("select");
                 }
-                if (FD_ISSET(FD_SOCKET, &sock)) {
+                if (FD_ISSET(FDGFD_SETET, &GFD_SET)) {
                     ingsoc rAck;
-                    ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+                    ingsoc_readMessage(FDGFD_SETET, &rAck, &SERVER_NAME);
 
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
@@ -140,19 +142,19 @@ int _connect(const char *addres) {
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
                 printf("Sendeing ACK_NR to server\n");
-                ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
+                ingsoc_writeMessage(FDGFD_SETET, &sACK, sizeof(sACK), &SERVER_NAME);
                 struct timeval timer;
                 timer.tv_sec = 3;
                 timer.tv_usec = 0;
                 printf("Reading socket in final state\n");
-                int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+                int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                 if(stemp == -1){
                    printf("Problem with select in sate 1");
                 }
 
-                if(FD_ISSET(FD_SOCKET, &sock)){
+                if(FD_ISSET(FDGFD_SETET, &GFD_SET)){
                     ingsoc rACK;
-                    ingsoc_readMessage(FD_SOCKET, &rACK, &serverName);
+                    ingsoc_readMessage(FDGFD_SETET, &rACK, &SERVER_NAME);
                     if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
                         printf("Recived ACK + SYN in final state\n");
                     }
@@ -177,21 +179,21 @@ int _disConnect()
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
-    ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
+    ingsoc_writeMessage(FDGFD_SETET, &sFin, sizeof(sFin), &SERVER_NAME);
     struct timeval timer;
     timer.tv_sec = 10;
     printf("Waiting for fin + ack\n");
-    FD_SET(FD_SOCKET, &_sock);
-    int stemp = select(FD_SETSIZE, &_sock, NULL, NULL, &timer);
+    FD_SET(FDGFD_SETET, &GFD_SET);
+    int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
     if(stemp == -1) perror("select");
-    if (FD_ISSET(FD_SOCKET, &_sock )) {
+    if (FD_ISSET(FDGFD_SETET, &GFD_SET )) {
         // Reads message for server.
         ingsoc rAck;
-        ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+        ingsoc_readMessage(FDGFD_SETET, &rAck, &SERVER_NAME);
         if (rAck.ACK == true && rAck.FIN == true) {
             printf("Recived fin + ack");
             sFin.ACK = true;
-            ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
+            ingsoc_writeMessage(FDGFD_SETET, &sFin, sizeof(sFin), &SERVER_NAME);
             // Do i need tto do any discconecting on UDP?
         }
     }
