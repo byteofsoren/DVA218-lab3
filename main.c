@@ -5,7 +5,7 @@
 int main(int argc, char *argv[])
 {
     char hostname[HOSTNAMELENGHT];
-
+    srand(time(NULL));
     printf("Hello World!\n");
 
     if (argv[1] == NULL) {
