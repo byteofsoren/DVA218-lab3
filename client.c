@@ -145,7 +145,10 @@ int _connect(const char *addres) {
                 timer.tv_sec = 10;
                 printf("Reading socket in final state\n");
                 int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
-                if(stemp == -1) perror("select");
+                if(stemp == -1){
+                   printf("Problem with select in sate 1");
+                }
+
                 if(FD_ISSET(FD_SOCKET, &sock)){
                     ingsoc rACK;
                     ingsoc_readMessage(FD_SOCKET, &rACK, &serverName);
@@ -167,10 +170,10 @@ int _connect(const char *addres) {
 int _disConnect()
 {
     /* This is the disconect functino */
+    printf("Initing a client _disConnect");
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
-    int running = 1;
     ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
     fd_set sock;
     FD_ZERO(&sock);
@@ -186,7 +189,6 @@ int _disConnect()
         ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
         if (rAck.ACK == true && rAck.FIN == true) {
             printf("Recived fin + ack");
-            running = 0;
             sFin.ACK = true;
             ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
             // Do i need tto do any discconecting on UDP?
