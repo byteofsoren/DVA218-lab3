@@ -166,13 +166,14 @@ int _connect(const char *addres) {
             }
         }
     }
+    printf("--- END ---\n\tEnded 3 way handsaheke function\n");
     return 0;
 }
 
 int _disConnect()
 {
     /* This is the disconect functino */
-    printf("Initing a client _disConnect");
+    printf("--- INIT---\n\tIniting a client _disConnect\n");
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
@@ -204,5 +205,6 @@ void client_main(char *addres)
 {
     _connect(addres);
     //_writeMessage(sock, "Hello Hampus");
+    printf("--Initing _disConnect---\n");
     _disConnect();
 }
