@@ -78,6 +78,8 @@ int _connect(const char *addres) {
     int counter = 10;
     size_t ACK_NR = 0;
     ingsoc sSyn;
+    FD_ZERO(&sock);
+    FD_SET(FD_SOCKET, &sock);
     while (running) {
         switch (state) {
             case 0:
@@ -99,8 +101,6 @@ int _connect(const char *addres) {
                 ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
 
 
-                FD_ZERO(&sock);
-                FD_SET(FD_SOCKET, &sock);
                 struct timeval timer;
                 timer.tv_sec = 10;
                 int t = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
@@ -139,10 +139,11 @@ int _connect(const char *addres) {
                 ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
+                printf("Sendeing ACK_NR to server\n");
                 ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
-
                 struct timeval timer;
-                timer.tv_sec = 10;
+                timer.tv_sec = 3;
+                timer.tv_usec = 0;
                 printf("Reading socket in final state\n");
                 int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
                 if(stemp == -1){
@@ -176,13 +177,11 @@ int _disConnect()
     ingsoc_init(&sFin);
     sFin.FIN = true;
     ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
-    fd_set sock;
-    FD_ZERO(&sock);
-    FD_SET(FD_SOCKET, &sock);
     struct timeval timer;
     timer.tv_sec = 10;
     printf("Waiting for fin + ack\n");
-    int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+    FD_SET(FD_SOCKET, &_sock);
+    int stemp = select(FD_SETSIZE, &_sock, NULL, NULL, &timer);
     if(stemp == -1) perror("select");
     if (FD_ISSET(FD_SOCKET, &_sock )) {
         // Reads message for server.
