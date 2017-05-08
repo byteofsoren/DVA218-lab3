@@ -5,18 +5,19 @@
 #define messageLength  256
 #define MAXMSG 512
 
-char HW_CONNECT[200] = "wlp1s0";
-int FD_SOCKET;
-struct sockaddr_in serverName;
-fd_set _sock;
-void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
+char HWclient_connect[200] = "wlp1s0";
+int GSOCKET;
+struct sockaddr_in SERVER_NAME;
+fd_set GFD_SET;
+
+void client_init_socket_addres6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
   /* Socket address format set to AF_INET for Internet use. */
   name->sin6_family = AF_INET6;
   /* Set port number. The function htons converts from host byte order to network byte order.*/
   name->sin6_port = htons(port);
   /* Get info about host. */
-  name->sin6_scope_id=if_nametoindex(HW_CONNECT);
+  name->sin6_scope_id=if_nametoindex(HWclient_connect);
   //name->sin6_scope_id=3;  // Wierles interface is 3 on most cases.
   name->sin6_flowinfo=0;
   //hostInfo = gethostbyname(hostName);  //Obsolite
@@ -35,11 +36,8 @@ void _initSocketAddress6(struct sockaddr_in6 *name, char *hostName, unsigned sho
   name->sin6_addr = *(struct in6_addr *)hostInfo->h_addr;
 }
 
-void _waitfor_socket()
-{
-}
 
-void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned short int port)
+void client_init_socket_addres(struct sockaddr_in *name, const char *hostName, unsigned short int port)
 {
     // A re implementation for iPV4
     struct hostent *hostInfo;
@@ -53,31 +51,32 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
 }
 
-int _connect(const char *addres) {
+int client_connect(const char *addres) {
     //char buffer[MAXMSG];
     //int nBytes = 0;
-    int FD_SOCKET = 0;
-    FD_SOCKET = socket(PF_INET, SOCK_DGRAM, 0);
-    if (FD_SOCKET < 0) {
+    GSOCKET = socket(PF_INET, SOCK_DGRAM, 0);
+    if (GSOCKET < 0) {
         perror("Could not create a socet\n");
         exit(EXIT_FAILURE);
     }
-    _initSocketAddress(&serverName, addres, PORT);
+    client_init_socket_addres(&SERVER_NAME, addres, PORT);
     //_writeMessage(sock, "Hello Hampus");
     /*
-      nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &serverName,sizeof(serverName));
+      nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &SERVER_NAME,sizeof(SERVER_NAME));
       usleep(10000);
-      int fucktard = sizeof(serverName);
-      nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &serverName ,&(fucktard));
+      int fucktard = sizeof(SERVER_NAME);
+      nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &SERVER_NAME ,&(fucktard));
       printf("%s\n",buffer);
     */
 
     short state = 0;
-    fd_set sock;
+    //fd_set sock;
     bool running = 1;
     int counter = 10;
     size_t ACK_NR = 0;
     ingsoc sSyn;
+    //FD_ZERO(&GFD_SET);
+    //FD_SET(GSOCKET, &GFD_SET);
     while (running) {
         switch (state) {
             case 0:
@@ -93,23 +92,23 @@ int _connect(const char *addres) {
                 sSyn.length = 0;
                 sSyn.data = 0;
                 sSyn.SYN = true;
-                //_writeMessage(FD_SOCKET, (char*)&sSyn);
+                //_writeMessage(GSOCKET, (char*)&sSyn);
                 ingsoc_seqnr(&sSyn);
 
-                ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
+                ingsoc_writeMessage(GSOCKET, &sSyn, sizeof(sSyn), &SERVER_NAME);
 
 
-                FD_ZERO(&sock);
-                FD_SET(FD_SOCKET, &sock);
                 struct timeval timer;
-                timer.tv_sec = 10;
-                int t = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+                timer.tv_sec = 1;
+                FD_ZERO(&GFD_SET);
+                FD_SET(GSOCKET,&GFD_SET);
+                int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                 if (t == -1) {
                     perror("select");
                 }
-                if (FD_ISSET(FD_SOCKET, &sock)) {
+                if (FD_ISSET(GSOCKET, &GFD_SET)) {
                     ingsoc rAck;
-                    ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+                    ingsoc_readMessage(GSOCKET, &rAck, &SERVER_NAME);
 
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
@@ -142,16 +141,20 @@ int _connect(const char *addres) {
                 ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
-                ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
-
+                printf("Sendeing ACK_NR to server\n");
+                ingsoc_writeMessage(GSOCKET, &sACK, sizeof(sACK), &SERVER_NAME);
                 struct timeval timer;
-                timer.tv_sec = 10;
+                timer.tv_sec = 3;
+                timer.tv_usec = 0;
                 printf("Reading socket in final state\n");
-                int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
-                if(stemp == -1) perror("select");
-                if(FD_ISSET(FD_SOCKET, &sock)){
+                int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
+                if(stemp == -1){
+                   printf("Problem with select in sate 1");
+                }
+
+                if(FD_ISSET(GSOCKET, &GFD_SET)){
                     ingsoc rACK;
-                    ingsoc_readMessage(FD_SOCKET, &rACK, &serverName);
+                    ingsoc_readMessage(GSOCKET, &rACK, &SERVER_NAME);
                     if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
                         printf("Recived ACK + SYN in final state\n");
                     }
@@ -165,34 +168,33 @@ int _connect(const char *addres) {
             }
         }
     }
+    printf("--- END ---\n\tEnded 3 way handsaheke function\n");
     return 0;
 }
 
-int _disConnect()
+int client_dis_connect()
 {
     /* This is the disconect functino */
+    printf("--- INIT---\n\tIniting a client client_dis_connect\n");
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
-    int running = 1;
-    ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
-    fd_set sock;
-    FD_ZERO(&sock);
-    FD_SET(FD_SOCKET, &sock);
+    ingsoc_writeMessage(GSOCKET, &sFin, sizeof(sFin), &SERVER_NAME);
     struct timeval timer;
     timer.tv_sec = 10;
+    timer.tv_usec = 0;
     printf("Waiting for fin + ack\n");
-    int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
+    FD_SET(GSOCKET, &GFD_SET);
+    int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
     if(stemp == -1) perror("select");
-    if (FD_ISSET(FD_SOCKET, &_sock )) {
+    if (FD_ISSET(GSOCKET, &GFD_SET )) {
         // Reads message for server.
         ingsoc rAck;
-        ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
+        ingsoc_readMessage(GSOCKET, &rAck, &SERVER_NAME);
         if (rAck.ACK == true && rAck.FIN == true) {
             printf("Recived fin + ack");
-            running = 0;
             sFin.ACK = true;
-            ingsoc_writeMessage(FD_SOCKET, &sFin, sizeof(sFin), &serverName);
+            ingsoc_writeMessage(GSOCKET, &sFin, sizeof(sFin), &SERVER_NAME);
             // Do i need tto do any discconecting on UDP?
         }
     }
@@ -204,7 +206,8 @@ int _disConnect()
 
 void client_main(char *addres)
 {
-    _connect(addres);
+    client_connect(addres);
     //_writeMessage(sock, "Hello Hampus");
-    _disConnect();
+    printf("--Initing client_dis_connect---\n");
+    client_dis_connect();
 }
