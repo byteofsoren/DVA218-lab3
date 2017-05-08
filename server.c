@@ -91,7 +91,9 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 ingsoc_init(&toWrite);
                 toWrite.ACK = true;
                 toWrite.SYN = true;
-                toWrite.SEQ = 1;            //Needs to be generated, fix later
+                ingsoc_seqnr(&toWrite);
+                toWrite.ACKnr = toRead.SEQ;
+
 
                 do {
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
