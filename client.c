@@ -56,13 +56,12 @@ void _initSocketAddress(struct sockaddr_in *name, const char *hostName, unsigned
 int _connect(const char *addres) {
     //char buffer[MAXMSG];
     //int nBytes = 0;
-    int sock = 0;
-    sock = socket(PF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
+    int FD_SOCKET = 0;
+    FD_SOCKET = socket(PF_INET, SOCK_DGRAM, 0);
+    if (FD_SOCKET < 0) {
         perror("Could not create a socet\n");
         exit(EXIT_FAILURE);
     }
-    FD_SOCKET = sock;
     _initSocketAddress(&serverName, addres, PORT);
     //_writeMessage(sock, "Hello Hampus");
     /*
@@ -74,6 +73,7 @@ int _connect(const char *addres) {
     */
 
     short state = 0;
+    fd_set sock;
     bool running = 1;
     int counter = 10;
     size_t ACK_NR = 0;
@@ -98,7 +98,7 @@ int _connect(const char *addres) {
 
                 ingsoc_writeMessage(FD_SOCKET, &sSyn, sizeof(sSyn), &serverName);
 
-                fd_set sock;
+
                 FD_ZERO(&sock);
                 FD_SET(FD_SOCKET, &sock);
                 struct timeval timer;
@@ -136,12 +136,11 @@ int _connect(const char *addres) {
             case 1:{
                 ingsoc sACK;
                 ingsoc_init(&sACK);
+                ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
                 ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
-                fd_set sock;
-                FD_ZERO(&sock);
-                FD_SET(FD_SOCKET, &sock);
+
                 struct timeval timer;
                 timer.tv_sec = 10;
                 printf("Reading socket in final state\n");
