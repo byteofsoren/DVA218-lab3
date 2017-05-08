@@ -27,8 +27,6 @@ int make_Socket6(unsigned short int port) {
     }
     return (sock);
 }
-
-
 int make_Socket4(unsigned short int port) {
     int sock;
     struct sockaddr_in name;
@@ -100,9 +98,7 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
  * activeFdSet - List of active FDs (which is only one, port 5555)
  * hostInfo - struct for handling internet addresses */
 void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo) {
-
-    printf("Hej nu är det dags för connect!\n");
-
+    
     ingsoc toWrite, toRead;
     int state = 0;
     int running = 1;
@@ -141,8 +137,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACKnr = toRead.SEQ;
 
-
-
+                do {
                     /* Sends the SYN+ACK package to client */
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                     printf("Server - ACK + SYN sent\n");
@@ -150,35 +145,30 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                     timer.tv_usec = 5000;
                     readFdSet = *activeFdSet;
                     /* Looks for changes in FD */
-                    if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                    if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                         perror("Server - Select failure");
 
-                    if(FD_ISSET(*fileDescriptor, &readFdSet))
-                    {
+                    if (FD_ISSET(*fileDescriptor, &readFdSet)) {
                         ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
                         /* After sending SYN+ACK and receving the final ack from client
                          * it will proceed to the next state, which is the final state */
-                        if(toRead.ACK == true && toRead.ACKnr == toWrite.SEQ)
-
-                        {
+                        if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
                             printf("Server - final ACK received\n");
                             state = 2;
-
                         }
 
-                        /* If for some reason the package is lost or something else is
-                         * received, it will add 1 to a counter and resend the SYN+ACK
-                         * package, after n timeouts it will exit this state */
+                            /* If for some reason the package is lost or something else is
+                             * received, it will add 1 to a counter and resend the SYN+ACK
+                             * package, after n timeouts it will exit this state */
 
-                        else{
+                        else {
                             printf("Server - ACK not received, attempt: %d", n + 1);
                             n++;
                         }
-                    }
-                    else{
+                    } else {
                         printf("Timeout\n");
                     }
-
+                }while(state == 1 && n <= 3);
                 break;
 
             case 2:
@@ -192,10 +182,6 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
     }while(running == 1);
     //SlidingWindowProtocol();
 }
-/* disconnect - This function is initialized when the server receives a FIN (disconnect request)
- * from the client*/
-
-
 void Server_Main(int arg){
     int sock;
     struct sockaddr_in  hostInfo;

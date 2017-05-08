@@ -50,4 +50,6 @@ void ingsoc_seqnr(ingsoc *in);
 void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info);
 void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sockaddr_in *host_info);
 int checkSum(void *data, int length, int error);
+void input(char* msg);
+
 #endif /* ifndef INGSOC */
