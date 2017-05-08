@@ -20,7 +20,6 @@ void ingsoc_init(ingsoc *insoci)
 size_t ingsoc_randomNr(size_t min, size_t max){
 // This is my random number generator
   size_t result = 0 , low = 0 ,hig = 0;
-  static int oneTime = 0;   // Srand patch
 
   if ( min < max) {
     low = min;
@@ -28,10 +27,6 @@ size_t ingsoc_randomNr(size_t min, size_t max){
   }  else {
     low = max + 1;        // include the max result in the output
     hig = min;
-  }
-  if (oneTime == 0) {     // you only run srand 1 time.
-    srand(time(NULL));
-    oneTime++;
   }
   result = rand() % (hig - low)+ low;  /* What this do is better expalined with an exampel.
   Lest say you get;
