@@ -151,6 +151,7 @@ int _connect(const char *addres) {
                 FD_SET(FD_SOCKET, &sock);
                 struct timeval timer;
                 timer.tv_sec = 10;
+                printf("Reading socket in final state");
                 int stemp = select(FD_SETSIZE, &sock, NULL, NULL, &timer);
                 if(stemp == -1) perror("select");
                 if(FD_ISSET(FD_SOCKET, &sock)){
