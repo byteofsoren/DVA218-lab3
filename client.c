@@ -121,7 +121,7 @@ int _connect(const char *addres) {
                     ingsoc rAck;
                     ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
 
-                    if (rAck.ACK == true && rAck.SYN == true && rAck.ACK == sSyn.SEQ) {
+                    if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
                         printf("ACK + SYN recived\n");
                         state = 1;
                     } else {
