@@ -123,7 +123,7 @@ int _connect(const char *addres) {
                     ingsoc_readMessage(FD_SOCKET, &rAck, &serverName);
 
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
-                        ACK_NR = rAck.ACK;
+                        ACK_NR = rAck.SEQ;
 
                         printf("ACK + SYN recived\n");
                         state = 1;
@@ -145,7 +145,8 @@ int _connect(const char *addres) {
             case 1:{
                 ingsoc sACK;
                 ingsoc_init(&sACK);
-                sACK.SEQ = ACK_NR;
+                sACK.ACK = true;
+                sACK.ACKnr = ACK_NR;
                 ingsoc_writeMessage(FD_SOCKET, &sACK, sizeof(sACK), &serverName);
                 fd_set sock;
                 FD_ZERO(&sock);
