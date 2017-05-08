@@ -136,6 +136,10 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 toWrite.SYN = true;
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACKnr = toRead.SEQ;
+                while(state == 1) {
+                    toWrite.data = (void *)'\0';
+                    toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
+                    printf("checksum: %d\n", toWrite.cksum);
 
                 do {
                     /* Sends the SYN+ACK package to client */
@@ -169,6 +173,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                         printf("Timeout\n");
                     }
                 }while(state == 1 && n <= 3);
+
                 break;
 
             case 2:
