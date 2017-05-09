@@ -77,14 +77,7 @@ int client_connect(const char *addres) {
 
                 //send syn
 
-                sSyn.clientID = getpid();
-                sSyn.ACK = false;
-                sSyn.FIN = false;
-                sSyn.RES = false;
-                sSyn.SEQ = 0;
-                sSyn.cksum = 0;
-                sSyn.length = windowSize;
-                sSyn.data = 0;
+                ingsoc_init(&sSyn);
                 sSyn.SYN = true;
 
                 //_writeMessage(GSOCKET, (char*)&sSyn);
@@ -200,11 +193,69 @@ int client_dis_connect()
     // close
     return 0;
 }
+void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo){
 
+    int state = 3;
+    int running = 1;
+    ingsoc toWrite, toRead;
+    fd_set readFdSet;
+    struct timeval timer;
+
+    ingsoc_init(&toWrite);
+    ingsoc_init(&toRead);
+
+    printf("Message:\n");
+    char *buffer = malloc(512);
+    input(buffer);
+    strcpy(toWrite.data, buffer);
+
+    if(toWrite.data != 0)
+        state = 0;
+
+    do {
+
+        switch (state) {
+            /* Case 0 - Send a package */
+            case 0:
+
+                /* SEQnr, Checksum will be added later */
+                printf("Client - Package sent, waiting for ACK\n");
+                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                state = 1;
+                break;
+            /* Case 1 - Waiting for ACK on package */
+            case 1:
+                readFdSet = *activeFdSet;
+                /* Looking for changes in FD */
+                timer.tv_sec = 5;
+                if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                    perror("Server - Select failure");
+                /*  */
+                if(FD_ISSET(*fileDescriptor, &readFdSet)) {
+                    /* Reads the package from client */
+                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                    /* If it receives the SYN it proceeds to the next state */
+                    if (toRead.ACK == true) {
+                        printf("Client - ACK received\n");
+                        running = 0;
+                    }
+                }
+                else {
+                    printf("Client - ACK Timeout, resending.\n");
+                    state = 0;
+                }
+
+                break;
+            default:
+                running = 0;
+                break;
+        }
+    }while(running == 1);
+}
 void client_main(char *addres)
 {
     client_connect(addres);
-    //_writeMessage(sock, "Hello Hampus");
+    SWSend(&GSOCKET, &GFD_SET, &SERVER_NAME);
     printf("--Initing client_dis_connect---\n");
     client_dis_connect();
 }

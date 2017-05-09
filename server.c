@@ -130,7 +130,6 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                         {
                             windowSize = toRead.length;
                         }
-                        else
                         state = 1;
                     }
                 }
@@ -145,9 +144,8 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACKnr = toRead.SEQ;
                 while(state == 1) {
-                    toWrite.data = (void *) '\0';
-                    toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
-                    printf("checksum: %d\n", toWrite.cksum);
+                    //toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
+                    //printf("checksum: %d\n", toWrite.cksum);
 
                     do {
                         /* Sends the SYN+ACK package to client */
@@ -196,15 +194,84 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
     }while(running == 1);
     //SlidingWindowProtocol();
 }
+void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo){
+
+    int state = 0;
+    int running = 1;
+    ingsoc toWrite, toRead;
+    fd_set readFdSet;
+    struct timeval timer;
+
+    ingsoc_init(&toWrite);
+    ingsoc_init(&toRead);
+
+    do {
+        switch (state) {
+            /* Case 0 - "Idle state" Wait for incoming msg
+             * checks checksum and SEQnr to make sure the package is not corrupt */
+            case 0:
+                readFdSet = *activeFdSet;
+                /* Looking for changes in FD */
+                if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0)
+                    perror("Server - Select failure");
+                /*  */
+                if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+                    /* Reads the package from client */
+                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                    //
+                    //if(checksum and seq OK) else send NACK?
+                    //if(toRead.FIN == true) running = 0;
+                    //
+                    state = 1;
+                }
+                /* If everything is in order, proceed to state 1 to read msg */
+                break;
+                /* Case 1 - Reads and prints message */
+            case 1:
+                printf("Server - MSG received: ");
+                //
+                printf("%s\n",toRead.data);
+                //print(msg);
+                //
+                state = 2;
+                break;
+                /* Case 2 - Everything is in order so we send and ACK to the client */
+            case 2:
+                toWrite.ACK = true;
+                //
+                //SEQ+checksum?
+                //
+                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                printf("Server - ACK sent\n");
+                state = 3;
+                break;
+                /* Case 3 - Checks if window is full */
+            case 3:
+                /* If(window == full)
+                 * state = 4;
+                 * else
+                 * readmsg; */
+                state = 4;
+                break;
+                /* Case 4 - Move window if window is full */
+            case 4:
+                /* Window++
+                 * readmsg; */
+
+                break;
+        }
+
+    } while (running == 1);
+}
 void Server_Main(int arg){
-    int sock;
+    int fileDescriptor;
     struct sockaddr_in  hostInfo;
     int nOfBytes = 0;
     char buffer[MAXMSG];
     fd_set readFdSet, activeFdSet; /* Used by select */
-    sock = make_Socket4(PORT);
+    fileDescriptor = make_Socket4(PORT);
     FD_ZERO(&activeFdSet);
-    FD_SET(sock,&activeFdSet);
+    FD_SET(fileDescriptor,&activeFdSet);
 /* Create a socket and set it up to accept connections */
 
     /* Initialize the set of active sockets */
@@ -213,7 +280,8 @@ void Server_Main(int arg){
 
     printf("\n[waiting for connections...]\n");
 
-    Threeway(&sock, &activeFdSet, &hostInfo);
+    Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
+    SWRecv(&fileDescriptor, &activeFdSet, &hostInfo);
 
 }
 
