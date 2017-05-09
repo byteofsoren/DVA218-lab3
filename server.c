@@ -232,6 +232,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 1:
                 printf("Server - MSG received: ");
                 //
+                printf("%s\n",(char*) toRead.data);
                 //print(msg);
                 //
                 state = 2;
