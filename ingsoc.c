@@ -51,17 +51,35 @@ void ingsoc_seqnr(ingsoc *in)
 
 }
 
-void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info){
+typedef struct {
+    int length;
+    short cksum;
+    unsigned char Data[600];
+} ingsoc_pkg;
+
+void ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info){
 
     unsigned nOfBytes = sizeof(*host_info);
     int dataRead = 0;
 //    char buffer[MAXMSG];
 
-    dataRead = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
+    void *pkg_point = calloc(600, sizeof(ingsoc_pkg*));
+    //void *pkg_point = NULL;
+
+    dataRead = recvfrom(fileDescriptor, pkg_point, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
     if(dataRead < 0){
         perror("readMessage - Could not READ data");
         exit(EXIT_FAILURE);
     }
+    ingsoc_pkg *pkg = calloc(1,sizeof(void*));
+    pkg = (ingsoc_pkg*)pkg_point;
+    printf("Reads chekc sum %d\n", pkg->cksum);
+    data = calloc(1, sizeof(void*));
+    data = (ingsoc*) pkg->Data;
+    ingsoc *temp = (ingsoc*)data;
+    printf("ingsoc ack=%d, syn=%d, res=%d\n", temp->ACK, temp->SYN, temp->RES);
+
+
 }
 /* writeMessage
  * Writes the string message to the file (socket)
@@ -71,8 +89,15 @@ void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host
 void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sockaddr_in *host_info) {
 
     int nOfBytes;
+    ingsoc_pkg pkg;
+    pkg.length = length;
+    pkg.cksum = 120;
+    memcpy(pkg.Data, data, length);
 
-    nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
+
+    void *pkg_point = &pkg;
+
+    nOfBytes = sendto(fileDescriptor, pkg_point, sizeof(pkg_point), 0, (struct sockaddr*)host_info,sizeof(*host_info));
     if(nOfBytes < 0){
         perror("writeMessage - Could not WRITE data\n");
         exit(EXIT_FAILURE);

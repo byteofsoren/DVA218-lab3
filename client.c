@@ -109,7 +109,7 @@ int client_connect(const char *addres) {
                 if (FD_ISSET(GSOCKET, &GFD_SET)) {
                     ingsoc rAck;
                     ingsoc_readMessage(GSOCKET, &rAck, &SERVER_NAME);
-
+                    printf("rAck.ACK = %d, rAck.Syn=%d, rAck.ACKnr=%ld\n",rAck.ACK, rAck.SYN, rAck.ACKnr);
                     if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
                         ACK_NR = rAck.SEQ;
