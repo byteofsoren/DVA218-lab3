@@ -102,8 +102,9 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
     ingsoc toWrite, toRead;
     int state = 0;
     int running = 1;
-    int n = 0;
+    int n = 0, windowSize = ingsoc_randomNr(2,6);
     struct timeval timer;
+
 
     fd_set readFdSet;
 
@@ -121,9 +122,15 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                     /* Reads the package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
                     /* If it receives the SYN it proceeds to the next state */
+
                     if(toRead.SYN == true)
                     {
                         printf("Server - SYN received\n");
+                        if (toRead.length < windowSize)
+                        {
+                            windowSize = toRead.length;
+                        }
+                        else
                         state = 1;
                     }
                 }
@@ -134,6 +141,7 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 ingsoc_init(&toWrite);
                 toWrite.ACK = true;
                 toWrite.SYN = true;
+                toWrite.length = windowSize;
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACKnr = toRead.SEQ;
                 while(state == 1) {

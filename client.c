@@ -56,7 +56,7 @@ int client_connect(const char *addres) {
     //int nBytes = 0;
     GSOCKET = socket(PF_INET, SOCK_DGRAM, 0);
     if (GSOCKET < 0) {
-        perror("Could not create a socet\n");
+        perror("Could not create a socket\n");
         exit(EXIT_FAILURE);
     }
     client_init_socket_addres(&SERVER_NAME, addres, PORT);
@@ -67,6 +67,7 @@ int client_connect(const char *addres) {
     bool running = 1;
     int i = 0, counter = 5;
     size_t ACK_NR = 0;
+    int windowSize = ingsoc_randomNr(1, 5);
     ingsoc sSyn;
     //FD_ZERO(&GFD_SET);
     //FD_SET(GSOCKET, &GFD_SET);
@@ -82,9 +83,10 @@ int client_connect(const char *addres) {
                 sSyn.RES = false;
                 sSyn.SEQ = 0;
                 sSyn.cksum = 0;
-                sSyn.length = 0;
+                sSyn.length = windowSize;
                 sSyn.data = 0;
                 sSyn.SYN = true;
+
                 //_writeMessage(GSOCKET, (char*)&sSyn);
                 ingsoc_seqnr(&sSyn);
 
@@ -111,7 +113,7 @@ int client_connect(const char *addres) {
                             int csum = checkSum(&rAck, sizeof(rAck), 0);
                             printf("skickad %d, räknad %d\n", csum1, csum);
                             printf("ACK + SYN recived\n");
-
+                            windowSize = rAck.length;
                             state = 1;
                         } else {
                             printf("!ACK + SYN recived\n");
