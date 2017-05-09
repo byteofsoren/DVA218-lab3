@@ -6,12 +6,12 @@ CROSS_TOLL=
 CC=$(CROSS_TOLL) gcc
 TTY=/dev/pts/2
 ## Target is the source files with out .c or .cpp  tex main.c ~> main
-TARGET=main client server ingsoc
+TARGET=main client server ingsoc doublethink
 OBJECTS=$(TARGET:=.o)
 ## EXECFILE is the name on the exe file you want
 EXECFILE=prog.out
 ## LFLAGS is the libary linker flags like -lncurses or -lpthread.
-LFLAGS=-pthread -lrt -lsodium
+LFLAGS=-pthread -lrt
 #LFLAGS=-lncurses -lm
 ## CFLAGS tells the copmiler to compile with diffrent flaggs mostly -g -Wall
 CFLAGS=-g -Wall
