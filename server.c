@@ -130,7 +130,6 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                         {
                             windowSize = toRead.length;
                         }
-                        else
                         state = 1;
                     }
                 }
@@ -145,9 +144,8 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACKnr = toRead.SEQ;
                 while(state == 1) {
-                    toWrite.data = (void *) '\0';
-                    toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
-                    printf("checksum: %d\n", toWrite.cksum);
+                    //toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
+                    //printf("checksum: %d\n", toWrite.cksum);
 
                     do {
                         /* Sends the SYN+ACK package to client */
@@ -232,7 +230,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 1:
                 printf("Server - MSG received: ");
                 //
-                printf("%s\n",(char*) toRead.data);
+                printf("%s\n",toRead.data);
                 //print(msg);
                 //
                 state = 2;
