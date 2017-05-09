@@ -51,5 +51,5 @@ void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host
 void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sockaddr_in *host_info);
 int checkSum(void *data, int length, int error);
 void input(char* msg);
-
+u_int CheckSumConf(void *cnf);
 #endif /* ifndef INGSOC */

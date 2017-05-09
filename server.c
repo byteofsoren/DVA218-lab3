@@ -137,43 +137,43 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACKnr = toRead.SEQ;
                 while(state == 1) {
-                    toWrite.data = (void *)'\0';
+                    toWrite.data = (void *) '\0';
                     toWrite.cksum = checkSum(&toWrite, sizeof(toWrite), 0);
                     printf("checksum: %d\n", toWrite.cksum);
 
-                do {
-                    /* Sends the SYN+ACK package to client */
-                    ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                    printf("Server - ACK + SYN sent\n");
-                    timer.tv_sec = 20;
-                    timer.tv_usec = 5000;
-                    readFdSet = *activeFdSet;
-                    /* Looks for changes in FD */
-                    if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
-                        perror("Server - Select failure");
+                    do {
+                        /* Sends the SYN+ACK package to client */
+                        ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                        printf("Server - ACK + SYN sent\n");
+                        timer.tv_sec = 20;
+                        timer.tv_usec = 5000;
+                        readFdSet = *activeFdSet;
+                        /* Looks for changes in FD */
+                        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                            perror("Server - Select failure");
 
-                    if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-                        ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                        /* After sending SYN+ACK and receving the final ack from client
-                         * it will proceed to the next state, which is the final state */
-                        if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                            printf("Server - final ACK received\n");
-                            state = 2;
+                        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+                            ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                            /* After sending SYN+ACK and receving the final ack from client
+                             * it will proceed to the next state, which is the final state */
+                            if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
+                                printf("Server - final ACK received\n");
+                                state = 2;
+                            }
+
+                                /* If for some reason the package is lost or something else is
+                                 * received, it will add 1 to a counter and resend the SYN+ACK
+                                 * package, after n timeouts it will exit this state */
+
+                            else {
+                                printf("Server - ACK not received, attempt: %d", n + 1);
+                                n++;
+                            }
+                        } else {
+                            printf("Timeout\n");
                         }
-
-                            /* If for some reason the package is lost or something else is
-                             * received, it will add 1 to a counter and resend the SYN+ACK
-                             * package, after n timeouts it will exit this state */
-
-                        else {
-                            printf("Server - ACK not received, attempt: %d", n + 1);
-                            n++;
-                        }
-                    } else {
-                        printf("Timeout\n");
-                    }
-                }while(state == 1 && n <= 3);
-
+                    } while (state == 1 && n <= 3);
+                }
                 break;
 
             case 2:

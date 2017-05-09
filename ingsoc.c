@@ -15,7 +15,16 @@ void ingsoc_init(ingsoc *insoci)
     insoci->length=0;
     insoci->data=0;
 }
+u_int CheckSumConf(void *cnf)
+{
+    int i;
+    u_int chk=0;
+    unsigned char *data;
 
+    data = cnf;
+    for (i=2; i < sizeof(ingsoc); i++) chk += *data++;
+    return chk;
+}
 
 size_t ingsoc_randomNr(size_t min, size_t max){
 // This is my random number generator

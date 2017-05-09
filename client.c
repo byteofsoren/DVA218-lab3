@@ -60,19 +60,12 @@ int client_connect(const char *addres) {
         exit(EXIT_FAILURE);
     }
     client_init_socket_addres(&SERVER_NAME, addres, PORT);
-    //_writeMessage(sock, "Hello Hampus");
-    /*
-      nBytes = sendto(sock,"Hej Fucktard", 13,0,(struct sockaddr*) &SERVER_NAME,sizeof(SERVER_NAME));
-      usleep(10000);
-      int fucktard = sizeof(SERVER_NAME);
-      nBytes = recvfrom(sock,buffer,MAXMSG,0,(struct sockaddr *) &SERVER_NAME ,&(fucktard));
-      printf("%s\n",buffer);
-    */
+
 
     short state = 0;
     //fd_set sock;
     bool running = 1;
-    int counter = 10;
+    int i = 0, counter = 5;
     size_t ACK_NR = 0;
     ingsoc sSyn;
     //FD_ZERO(&GFD_SET);
@@ -95,42 +88,43 @@ int client_connect(const char *addres) {
                 //_writeMessage(GSOCKET, (char*)&sSyn);
                 ingsoc_seqnr(&sSyn);
 
+
                 ingsoc_writeMessage(GSOCKET, &sSyn, sizeof(sSyn), &SERVER_NAME);
-
-
-                struct timeval timer;
-                timer.tv_sec = 1;
-                FD_ZERO(&GFD_SET);
-                FD_SET(GSOCKET,&GFD_SET);
-                int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
-                if (t == -1) {
-                    perror("select");
-                }
-                if (FD_ISSET(GSOCKET, &GFD_SET)) {
-                    ingsoc rAck;
-                    ingsoc_readMessage(GSOCKET, &rAck, &SERVER_NAME);
-
-                    if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
-
-                        ACK_NR = rAck.SEQ;
-                        int csum1 = rAck.cksum;
-                        rAck.cksum = 0;
-                        int csum = checkSum(&rAck,sizeof(rAck),0);
-                        printf("skickad %d, räknad %d\n",csum1,csum);
-                        printf("ACK + SYN recived\n");
-
-                        state = 1;
-                    } else {
-                        printf("!ACK + SYN recived\n");
-                        exit(EXIT_FAILURE);
+                while(counter > 0 && state == 0) {
+                    struct timeval timer;
+                    timer.tv_sec = 1;
+                    FD_ZERO(&GFD_SET);
+                    FD_SET(GSOCKET, &GFD_SET);
+                    int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
+                    if (t == -1) {
+                        perror("select");
                     }
-                    // Read from socket.
-                    // om ACk -> state = 1;
-                    // om ej ACK -> exit
-                } else {
-                    printf("Time out counter is now %d\n", counter);
-                    counter--;
-                    if (counter == 0) exit(EXIT_FAILURE);
+                    if (FD_ISSET(GSOCKET, &GFD_SET)) {
+                        ingsoc rAck;
+                        ingsoc_readMessage(GSOCKET, &rAck, &SERVER_NAME);
+
+                        if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
+
+                            ACK_NR = rAck.SEQ;
+                            int csum1 = rAck.cksum;
+                            rAck.cksum = 0;
+                            int csum = checkSum(&rAck, sizeof(rAck), 0);
+                            printf("skickad %d, räknad %d\n", csum1, csum);
+                            printf("ACK + SYN recived\n");
+
+                            state = 1;
+                        } else {
+                            printf("!ACK + SYN recived\n");
+                            exit(EXIT_FAILURE);
+                        }
+                        // Read from socket.
+                        // om ACk -> state = 1;
+                        // om ej ACK -> exit
+                    } else {
+                        printf("Time out counter is now %d\n", counter);
+                        counter--;
+                        if (counter == 0) exit(EXIT_FAILURE);
+                    }
                 }
                 //Recive ack
                 //or time out
@@ -144,7 +138,7 @@ int client_connect(const char *addres) {
                 printf("Sendeing ACK_NR to server\n");
                 ingsoc_writeMessage(GSOCKET, &sACK, sizeof(sACK), &SERVER_NAME);
                 struct timeval timer;
-                timer.tv_sec = 3;
+                timer.tv_sec = 5;
                 timer.tv_usec = 0;
                 printf("Reading socket in final state\n");
                 int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
