@@ -212,7 +212,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     ingsoc_init(&toRead);
 
     printf("Message:\n");
-    input(toWrite.data);
+    char *buffer = malloc(512);
+    input(buffer);
+    toWrite.data = buffer;
 
     if(toWrite.data != 0)
         state = 0;
@@ -236,22 +238,20 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                     perror("Server - Select failure");
                 /*  */
-                if(FD_ISSET(*fileDescriptor, &readFdSet))
-                {
+                if(FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads the package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
                     /* If it receives the SYN it proceeds to the next state */
-                    if(toRead.ACK == true)
-                    {
+                    if (toRead.ACK == true) {
                         printf("Client - ACK received\n");
                         running = 0;
                     }
-                    else
-                    {
-                        printf("Client - ACK Timeout, resending.\n");
-                        state = 0;
-                    }
                 }
+                else {
+                    printf("Client - ACK Timeout, resending.\n");
+                    state = 0;
+                }
+
                 break;
             default:
                 running = 0;
