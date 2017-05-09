@@ -120,6 +120,7 @@ int client_connect(const char *addres) {
                         // Read from socket.
                         // om ACk -> state = 1;
                         // om ej ACK -> exit
+
                     } else {
                         printf("Time out counter is now %d\n", counter);
                         counter--;

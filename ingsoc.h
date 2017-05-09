@@ -52,4 +52,5 @@ void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sock
 int checkSum(void *data, int length, int error);
 void input(char* msg);
 u_int CheckSumConf(void *cnf);
+
 #endif /* ifndef INGSOC */
