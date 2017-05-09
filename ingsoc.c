@@ -13,7 +13,7 @@ void ingsoc_init(ingsoc *insoci)
     insoci->SEQ=0;
     insoci->cksum=0;
     insoci->length=0;
-    insoci->data=0;
+    insoci->data[0] = '\0';
 }
 u_int CheckSumConf(void *cnf)
 {

@@ -77,14 +77,7 @@ int client_connect(const char *addres) {
 
                 //send syn
 
-                sSyn.clientID = getpid();
-                sSyn.ACK = false;
-                sSyn.FIN = false;
-                sSyn.RES = false;
-                sSyn.SEQ = 0;
-                sSyn.cksum = 0;
-                sSyn.length = windowSize;
-                sSyn.data = 0;
+                ingsoc_init(&sSyn);
                 sSyn.SYN = true;
 
                 //_writeMessage(GSOCKET, (char*)&sSyn);
@@ -214,7 +207,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     printf("Message:\n");
     char *buffer = malloc(512);
     input(buffer);
-    toWrite.data = buffer;
+    strcpy(toWrite.data, buffer);
 
     if(toWrite.data != 0)
         state = 0;

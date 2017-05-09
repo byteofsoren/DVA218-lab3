@@ -41,7 +41,7 @@ typedef struct{
     bool ACK, FIN, RES, SYN;
     size_t ACKnr, SEQ, clientID;
     short cksum, length;
-    void *data;
+    char data[256];
 
 }ingsoc;
 
