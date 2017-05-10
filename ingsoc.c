@@ -13,9 +13,21 @@ void ingsoc_init(ingsoc *insoci)
     insoci->SEQ=0;
     insoci->cksum=0;
     insoci->length=0;
-    insoci->data=0;
+    memset(insoci->data, 0, 255);
 }
 
+void ingsoc_pretty_print(ingsoc *s){
+    char t[] = "\e[032mtrue\e[0m";
+    char f[] = "\e[031mfalse\e[0m";
+    printf("ACK=%s, FIN=%s, RES=%s, SYN=%s\n",
+            s->ACK?t:f,
+            s->FIN?t:f,
+            s->RES?t:f,
+            s->SYN?t:f);
+    printf(" ACKnr=\e[036m%ld\e[0m\n SEQ=\e[036m%ld\e[0m\n clientID=\e[036m%ld\e[0m\n", s->ACKnr, s->SEQ, s->clientID);
+    printf("cksum=\e[033m%d\e[0m, length=\e[033m%d\e[0m\n", s->cksum, s->length);
+    printf("Data='%s'\n\n",s->data);
+}
 
 size_t ingsoc_randomNr(size_t min, size_t max){
 // This is my random number generator
@@ -48,37 +60,120 @@ void ingsoc_seqnr(ingsoc *in)
     }
     in->SEQ = startNr;
 
-
 }
 
-typedef struct {
-    int length;
-    short cksum;
-    unsigned char Data[600];
-} ingsoc_pkg;
+size_t convert_size_t(char *buffer, size_t pos, size_t data){
+    int length = sizeof(data);
+    char temp[length];
+    memset(temp, ' ' , length);
+    //printf("temp=%s, pos=%ld\n", temp, pos);
+    snprintf(temp, length, "%ld", data);
+    memcpy(buffer + pos, temp, sizeof(size_t));
+    return length + pos;
+}
 
-void ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info){
+size_t convert_short(char *buffer, size_t pos, short data){
+    int length = sizeof(data);
+    char temp[length];
+    memset(temp, ' ' , length);
+    //printf("temp=%s, pos=%ld\n", temp, pos);
+    snprintf(temp, length, "%d", data);
+    memcpy(buffer + pos, temp, sizeof(size_t));
+    return length + pos;
+}
+
+int toSerial(ingsoc *package, char *out){
+    int bytes = 0;
+    bytes = (int) sizeof(ingsoc) + 1;
+    char buffer[bytes + 3];
+    memset(buffer, 'E' , bytes + 2);
+    buffer[bytes+3] = '\0';
+    //buffer[0] = package->ACK;
+    buffer[0] = (package->ACK) ? 't' : 'f';
+    //printf("ACK in buffer is %c\n", buffer[0]);
+    buffer[1] = (package->FIN) ? 't' : 'f';
+    buffer[2] = (package->RES) ? 't' : 'f';
+    buffer[3] = (package->SYN) ? 't' : 'f';
+    int counter = 4;
+    //printf("buffer %s\n" ,buffer);
+    /*char temp[sizeof(size_t)];
+    snprintf(temp, sizeof(size_t), "%ld", package->ACKnr);
+    memcpy(buffer + counter, temp, sizeof(size_t));
+*/
+    counter = convert_size_t(buffer, counter, package->ACKnr);
+    counter = convert_size_t(buffer, counter, package->SEQ);
+    counter = convert_size_t(buffer, counter, package->clientID);
+    counter = convert_short(buffer,  counter, package->cksum);
+    counter = convert_short(buffer, counter, package->length);
+    memcpy(buffer + counter, package->data, 255);
+
+    memcpy(out, buffer, bytes);
+    return bytes;
+}
+size_t revert_size_t(char *buffer, size_t pos, size_t *data){
+    size_t length = sizeof(data);
+    char temp[sizeof(size_t)];
+    memcpy(temp, buffer + pos, sizeof(size_t));
+    //printf("temp=%s",temp);
+    *data = atoi(temp);
+    return length + pos;
+}
+
+size_t revert_short(char *buffer, size_t pos, short *data){
+    size_t length = sizeof(data);
+    char temp[sizeof(size_t)];
+    memcpy(temp, buffer + pos, sizeof(size_t));
+    //printf("temp=%s",temp);
+    *data = atoi(temp);
+    return length + pos;
+}
+
+
+ingsoc *fromSerial(char *buffer){
+    ingsoc *pack= (ingsoc*)calloc(1, sizeof(ingsoc));
+    //size_t bytes = sizeof(ingsoc);
+    pack->ACK = (buffer[0] == 't') ? true:false;
+    pack->FIN = (buffer[1] == 't') ? true:false;
+    pack->RES = (buffer[2] == 't') ? true:false;
+    pack->SYN = (buffer[3] == 't') ? true:false;
+    /*char temp[sizeof(size_t)];
+    memcpy(temp, buffer + 4, sizeof(size_t));
+    printf("temp=%s",temp);
+    pack->ACKnr = atoi(temp);
+    */
+    size_t counter = 4;
+    counter = revert_size_t(buffer, counter, &pack->ACKnr);
+    counter = revert_size_t(buffer, counter, &pack->SEQ);
+    counter = revert_size_t(buffer, counter, &pack->clientID);
+    counter= revert_short(buffer, counter, &pack->cksum);
+    counter= revert_short(buffer, counter, &pack->length);
+    memcpy(pack->data, buffer + counter, 255);
+    return pack;
+}
+
+short ingsoc_cksum(char *buffer, int length){
+    short csum = 0;
+    for (int i = 0; i < length; ++i) {
+        csum += buffer[i];
+    }
+    return csum;
+}
+
+void ingsoc_readMessage(int fileDescriptor, ingsoc* pack,struct sockaddr_in *host_info){
 
     unsigned nOfBytes = sizeof(*host_info);
     int dataRead = 0;
-//    char buffer[MAXMSG];
+    char *buffer = (char *) calloc(sizeof(ingsoc), sizeof(char));
 
-    void *pkg_point = calloc(600, sizeof(ingsoc_pkg*));
-    //void *pkg_point = NULL;
-
-    dataRead = recvfrom(fileDescriptor, pkg_point, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
+    dataRead = recvfrom(fileDescriptor, buffer, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
     if(dataRead < 0){
         perror("readMessage - Could not READ data");
         exit(EXIT_FAILURE);
     }
-    ingsoc_pkg *pkg = calloc(1,sizeof(void*));
-    pkg = (ingsoc_pkg*)pkg_point;
-    printf("Reads chekc sum %d\n", pkg->cksum);
-    data = calloc(1, sizeof(void*));
-    data = (ingsoc*) pkg->Data;
-    ingsoc *temp = (ingsoc*)data;
-    printf("ingsoc ack=%d, syn=%d, res=%d\n", temp->ACK, temp->SYN, temp->RES);
-
+    ingsoc *tpack = fromSerial( buffer);
+    printf("prit sock in ingsoc_readMessage\n");
+    ingsoc_pretty_print(tpack);
+    memcpy(pack, tpack, sizeof(ingsoc));
 
 }
 /* writeMessage
@@ -86,18 +181,18 @@ void ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *ho
  * denoted by fileDescriptor.
  */
 
-void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sockaddr_in *host_info) {
+void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info) {
 
-    int nOfBytes;
-    ingsoc_pkg pkg;
-    pkg.length = length;
-    pkg.cksum = 120;
-    memcpy(pkg.Data, data, length);
+    int nOfBytes = length;
+    char *buffer = (char*)calloc(sizeof(ingsoc), sizeof(char));
+    //short cksum = data->cksum;
+    data->cksum = 0;
+    toSerial(data,buffer);
 
-
-    void *pkg_point = &pkg;
-
-    nOfBytes = sendto(fileDescriptor, pkg_point, sizeof(pkg_point), 0, (struct sockaddr*)host_info,sizeof(*host_info));
+    data->cksum = ingsoc_cksum(buffer, sizeof(buffer));
+    printf("Sending this struct\n");
+    ingsoc_pretty_print(data);
+    nOfBytes = sendto(fileDescriptor, buffer, sizeof(buffer), 0, (struct sockaddr*)host_info,sizeof(*host_info));
     if(nOfBytes < 0){
         perror("writeMessage - Could not WRITE data\n");
         exit(EXIT_FAILURE);

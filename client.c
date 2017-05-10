@@ -90,7 +90,7 @@ int client_connect(const char *addres) {
                 sSyn.SEQ = 0;
                 sSyn.cksum = 0;
                 sSyn.length = 0;
-                sSyn.data = 0;
+                //sSyn.data = 0;
                 sSyn.SYN = true;
                 //_writeMessage(GSOCKET, (char*)&sSyn);
                 ingsoc_seqnr(&sSyn);
