@@ -221,6 +221,8 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 strcpy(toWrite.data, buffer);
                 /* Generating SEQnr */
                 ingsoc_seqnr(&toWrite);
+                free(buffer);
+
                 state = 2;
                 break;
             /* Case 2 - Send a package */
@@ -242,7 +244,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     /* Reads the package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
                     /* If it receives the SYN it proceeds to the next state */
-                    if (toRead.ACK == true && toRead.ACKnr == toRead.SEQ) {
+                    if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
                         printf("Client - ACK received\n");
                         /* Ready to send a new package */
                         state = 0;

@@ -207,8 +207,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
     do {
         switch (state) {
-            /* Case 0 - "Idle state" Wait for incoming msg
-             * checks checksum and SEQnr to make sure the package is not corrupt */
+            /* Case 0 - "Idle state" Wait for incoming msg */
             case 0:
                 readFdSet = *activeFdSet;
                 /* Looking for changes in FD */
@@ -228,10 +227,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 /* Case 1 - Reads and prints message */
             case 1:
                 printf("Server - MSG received: ");
-                //
                 printf("%s\n",toRead.data);
-                //print(msg);
-                //
+
                 state = 2;
                 break;
                 /* Case 2 - Everything is in order so we send and ACK to the client */
@@ -242,7 +239,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 toWrite.ACKnr = toRead.SEQ;
 
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                printf("Server - ACK sent\n");
+                printf("Server - ACK sent [TEST COMPLETE so far]\n");
 
                 state = 3;
                 break;
