@@ -218,11 +218,10 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 if (FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads the package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    //
-                    //if(checksum and seq OK) else send NACK?
-                    //if(toRead.FIN == true) running = 0;
-                    //
-                    state = 1;
+                    if(toRead.FIN == true)
+                        state = 5;
+                    else
+                        state = 1;
                 }
                 /* If everything is in order, proceed to state 1 to read msg */
                 break;
@@ -237,12 +236,14 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 break;
                 /* Case 2 - Everything is in order so we send and ACK to the client */
             case 2:
+                ingsoc_seqnr(&toWrite);
+
                 toWrite.ACK = true;
-                //
-                //SEQ+checksum?
-                //
+                toWrite.ACKnr = toRead.SEQ;
+
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 printf("Server - ACK sent\n");
+
                 state = 3;
                 break;
                 /* Case 3 - Checks if window is full */
@@ -259,11 +260,16 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                  * readmsg; */
 
                 break;
+            case 5:
+                printf("Server - No more incoming packages.\n");
+                running = 0;
+                break;
         }
 
     } while (running == 1);
 }
 void Server_Main(int arg){
+
     int fileDescriptor;
     struct sockaddr_in  hostInfo;
     int nOfBytes = 0;
