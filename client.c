@@ -68,20 +68,15 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     size_t ACK_NR = 0;
     int windowSize = ingsoc_randomNr(1, 5);
     ingsoc sSyn;
-    //FD_ZERO(&GFD_SET);
-    //FD_SET(*GSOCKET, &GFD_SET);
+
     while (running) {
         switch (state) {
             case 0:
-
-                //send syn
-
                 ingsoc_init(&sSyn);
                 sSyn.SYN = true;
                 sSyn.length = windowSize;
-                //_writeMessage(*GSOCKET, (char*)&sSyn);
-                ingsoc_seqnr(&sSyn);
 
+                ingsoc_seqnr(&sSyn);
 
                 ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), SERVER_NAME);
                 while(counter > 0 && state == 0) {
@@ -99,29 +94,18 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                         if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
                             ACK_NR = rAck.SEQ;
-                            int csum1 = rAck.cksum;
-                            rAck.cksum = 0;
-                            int csum = checkSum(&rAck, sizeof(rAck), 0);
-                            printf("skickad %d, räknad %d\n", csum1, csum);
-                            printf("ACK + SYN recived\n");
                             windowSize = rAck.length;
                             state = 1;
                         } else {
                             printf("!ACK + SYN recived\n");
                             exit(EXIT_FAILURE);
                         }
-                        // Read from socket.
-                        // om ACk -> state = 1;
-                        // om ej ACK -> exit
-
                     } else {
                         printf("Time out counter is now %d\n", counter);
                         counter--;
                         if (counter == 0) exit(EXIT_FAILURE);
                     }
                 }
-                //Recive ack
-                //or time out
                 break;
             case 1:{
                 ingsoc sACK;
@@ -129,53 +113,57 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
-                printf("Sendeing ACK_NR to server\n");
+
                 ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), SERVER_NAME);
+                printf("Client - ACK sent\n");
+
                 struct timeval timer;
                 timer.tv_sec = 5;
-                timer.tv_usec = 0;
-                printf("Reading socket in final state\n");
+
+                printf("Client - Reading socket in final state\n");
                 GFD_SET = *ActiveFdSet;
+
                 int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                 if(stemp == -1){
-                   printf("Problem with select in sate 1");
+                   perror("Client - Select failed\n");
                 }
 
                 if(FD_ISSET(*GSOCKET, &GFD_SET)){
                     ingsoc rACK;
                     ingsoc_readMessage(*GSOCKET, &rACK, SERVER_NAME);
                     if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
-                        printf("Recived ACK + SYN in final state\n");
+                        printf("Client - Final ACK received\n");
                     }
                 }else{
-                    // time out exits the loop
-                    running = 0;    // Stops the program
-                    printf("No duplicate packets...continuing to sliding Windows\n");
+                    running = 0;
                 }
 
                 break;
             }
         }
     }
-    printf("--- END ---\n\tEnded 3 way handsaheke function\n");
+    printf("Client - Three-way handshake successful\n");
     return windowSize;
 }
 
 int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_NAME)
 {
     /* This is the disconect functino */
-    printf("--- INIT---\n\tIniting a client client_dis_connect\n");
+    printf("Client - Disconnecting\n");
+
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
+
     ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+
     struct timeval timer;
     timer.tv_sec = 10;
     timer.tv_usec = 0;
-    printf("Waiting for fin + ack\n");
+
     FD_SET(*GSOCKET, &GFD_SET);
     int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
-    if(stemp == -1) perror("select");
+    if(stemp == -1) perror("Client - Select failed");
     if (FD_ISSET(*GSOCKET, &GFD_SET )) {
         // Reads message for server.
         ingsoc rAck;
@@ -183,13 +171,11 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
         if (rAck.ACK == true && rAck.FIN == true) {
             printf("Recived fin + ack");
             sFin.ACK = true;
+
             ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-            // Do i need tto do any discconecting on UDP?
+
         }
     }
-    // wait for FIN + ACK
-    // Send ACK + FIN
-    // close
     return 0;
 }
 void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize){
