@@ -97,7 +97,7 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
  * fileDescriptor - Socket handle
  * activeFdSet - List of active FDs (which is only one, port 5555)
  * hostInfo - struct for handling internet addresses */
-void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo) {
+int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo) {
     
     ingsoc toWrite, toRead;
     int state = 0;
@@ -192,9 +192,9 @@ void Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *host
                 break;
         }
     }while(running == 1);
-    //SlidingWindowProtocol();
+    return windowSize;
 }
-void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo){
+void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize){
 
     int state = 0;
     int running = 1;
@@ -241,7 +241,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 printf("Server - ACK sent [TEST COMPLETE so far]\n");
 
-                state = 3;
+                state = 0;
                 break;
                 /* Case 3 - Checks if window is full */
             case 3:
@@ -269,7 +269,7 @@ void Server_Main(int arg){
 
     int fileDescriptor;
     struct sockaddr_in  hostInfo;
-    int nOfBytes = 0;
+    int windowSize = 0, nOfBytes = 0;
     char buffer[MAXMSG];
     fd_set readFdSet, activeFdSet; /* Used by select */
     fileDescriptor = make_Socket4(PORT);
@@ -283,8 +283,8 @@ void Server_Main(int arg){
 
     printf("\n[waiting for connections...]\n");
 
-    Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
-    SWRecv(&fileDescriptor, &activeFdSet, &hostInfo);
+    windowSize = Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
+    SWRecv(&fileDescriptor, &activeFdSet, &hostInfo, windowSize);
 
 }
 
