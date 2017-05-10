@@ -200,7 +200,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     ingsoc toWrite, toRead;
     fd_set readFdSet;
     struct timeval timer;
-
+    int n = 0;
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
@@ -218,12 +218,20 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 break;
             case 1:
                 /* Adding the message to the package */
-                strcpy(toWrite.data, buffer);
+                //strcpy(toWrite.data, buffer[n]);
+                toWrite.data[0] = buffer[n];
+                toWrite.data[1] = '\0';
                 /* Generating SEQnr */
                 ingsoc_seqnr(&toWrite);
-                free(buffer);
-
-                state = 2;
+                if(buffer[n] == '\0')
+                {
+                    state = 4;
+                }
+                else
+                {
+                    state = 2;
+                }
+                n++;
                 break;
             /* Case 2 - Send a package */
             case 2:
@@ -247,7 +255,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
                         printf("Client - ACK received\n");
                         /* Ready to send a new package */
-                        state = 0;
+                        state = 1;
                     }
                     else
                     {
@@ -259,6 +267,14 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     printf("Client - ACK Timeout, resending.\n");
                     state = 2;
                 }
+                break;
+            case 4:
+                printf("Client - End of message\n");
+
+                ingsoc_seqnr(&toWrite);
+                toWrite.FIN = true;
+                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                running = 0;
                 break;
         }
     }while(running == 1);

@@ -241,7 +241,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 printf("Server - ACK sent [TEST COMPLETE so far]\n");
 
-                state = 3;
+                state = 0;
                 break;
                 /* Case 3 - Checks if window is full */
             case 3:
