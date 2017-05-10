@@ -8,7 +8,6 @@
 char HWclient_connect[200] = "wlp1s0";
 int GSOCKET;
 struct sockaddr_in SERVER_NAME;
-fd_set GFD_SET;
 
 void client_init_socket_addres6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
@@ -51,7 +50,7 @@ void client_init_socket_addres(struct sockaddr_in *name, const char *hostName, u
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
 }
 
-int client_connect(const char *addres) {
+int client_connect(fd_set *ActiveFdSet, const char *addres) {
     //char buffer[MAXMSG];
     //int nBytes = 0;
     GSOCKET = socket(PF_INET, SOCK_DGRAM, 0);
@@ -60,10 +59,11 @@ int client_connect(const char *addres) {
         exit(EXIT_FAILURE);
     }
     client_init_socket_addres(&SERVER_NAME, addres, PORT);
-
+    FD_ZERO(ActiveFdSet);
+    FD_SET(GSOCKET, ActiveFdSet);
 
     short state = 0;
-    //fd_set sock;
+    fd_set GFD_SET;
     bool running = 1;
     int i = 0, counter = 5;
     size_t ACK_NR = 0;
@@ -88,8 +88,7 @@ int client_connect(const char *addres) {
                 while(counter > 0 && state == 0) {
                     struct timeval timer;
                     timer.tv_sec = 1;
-                    FD_ZERO(&GFD_SET);
-                    FD_SET(GSOCKET, &GFD_SET);
+                    GFD_SET = *ActiveFdSet;
                     int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                     if (t == -1) {
                         perror("select");
@@ -137,6 +136,7 @@ int client_connect(const char *addres) {
                 timer.tv_sec = 5;
                 timer.tv_usec = 0;
                 printf("Reading socket in final state\n");
+                GFD_SET = *ActiveFdSet;
                 int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                 if(stemp == -1){
                    printf("Problem with select in sate 1");
@@ -162,7 +162,7 @@ int client_connect(const char *addres) {
     return 0;
 }
 
-int client_dis_connect()
+int client_dis_connect(fd_set GFD_SET)
 {
     /* This is the disconect functino */
     printf("--- INIT---\n\tIniting a client client_dis_connect\n");
@@ -265,8 +265,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 }
 void client_main(char *addres)
 {
-    client_connect(addres);
+    fd_set GFD_SET;
+    client_connect(&GFD_SET, addres);
     SWSend(&GSOCKET, &GFD_SET, &SERVER_NAME);
     printf("--Initing client_dis_connect---\n");
-    client_dis_connect();
+    client_dis_connect(GFD_SET);
 }
