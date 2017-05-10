@@ -7,7 +7,6 @@
 
 char HWclient_connect[200] = "wlp1s0";
 
-struct sockaddr_in SERVER_NAME;
 
 void client_init_socket_addres6(struct sockaddr_in6 *name, char *hostName, unsigned short int port) {
   struct hostent *hostInfo; /* Contains info about the host */
@@ -50,7 +49,7 @@ void client_init_socket_addres(struct sockaddr_in *name, const char *hostName, u
     name->sin_addr = *(struct in_addr *)hostInfo->h_addr;
 }
 
-int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
+int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct sockaddr_in *SERVER_NAME) {
     //char buffer[MAXMSG];
     //int nBytes = 0;
     *GSOCKET = socket(PF_INET, SOCK_DGRAM, 0);
@@ -58,7 +57,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
         perror("Could not create a socket\n");
         exit(EXIT_FAILURE);
     }
-    client_init_socket_addres(&SERVER_NAME, addres, PORT);
+    client_init_socket_addres(SERVER_NAME, addres, PORT);
     FD_ZERO(ActiveFdSet);
     FD_SET(*GSOCKET, ActiveFdSet);
 
@@ -84,7 +83,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
                 ingsoc_seqnr(&sSyn);
 
 
-                ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), &SERVER_NAME);
+                ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), SERVER_NAME);
                 while(counter > 0 && state == 0) {
                     struct timeval timer;
                     timer.tv_sec = 1;
@@ -95,7 +94,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
                     }
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
                         ingsoc rAck;
-                        ingsoc_readMessage(*GSOCKET, &rAck, &SERVER_NAME);
+                        ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
 
                         if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
@@ -131,7 +130,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
                 printf("Sendeing ACK_NR to server\n");
-                ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), &SERVER_NAME);
+                ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), SERVER_NAME);
                 struct timeval timer;
                 timer.tv_sec = 5;
                 timer.tv_usec = 0;
@@ -144,7 +143,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
 
                 if(FD_ISSET(*GSOCKET, &GFD_SET)){
                     ingsoc rACK;
-                    ingsoc_readMessage(*GSOCKET, &rACK, &SERVER_NAME);
+                    ingsoc_readMessage(*GSOCKET, &rACK, SERVER_NAME);
                     if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
                         printf("Recived ACK + SYN in final state\n");
                     }
@@ -162,14 +161,14 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
     return windowSize;
 }
 
-int client_dis_connect(int *GSOCKET, fd_set GFD_SET)
+int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_NAME)
 {
     /* This is the disconect functino */
     printf("--- INIT---\n\tIniting a client client_dis_connect\n");
     ingsoc sFin;
     ingsoc_init(&sFin);
     sFin.FIN = true;
-    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), &SERVER_NAME);
+    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
     struct timeval timer;
     timer.tv_sec = 10;
     timer.tv_usec = 0;
@@ -180,11 +179,11 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET)
     if (FD_ISSET(*GSOCKET, &GFD_SET )) {
         // Reads message for server.
         ingsoc rAck;
-        ingsoc_readMessage(*GSOCKET, &rAck, &SERVER_NAME);
+        ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
         if (rAck.ACK == true && rAck.FIN == true) {
             printf("Recived fin + ack");
             sFin.ACK = true;
-            ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), &SERVER_NAME);
+            ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
             // Do i need tto do any discconecting on UDP?
         }
     }
@@ -281,10 +280,11 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 }
 void client_main(char *addres)
 {
+    struct sockaddr_in SERVER_NAME;
     int GSOCKET, windowSize = 0;
     fd_set GFD_SET;
-    windowSize = client_connect(&GSOCKET, &GFD_SET, addres);
+    windowSize = client_connect(&GSOCKET, &GFD_SET, addres, &SERVER_NAME);
     SWSend(&GSOCKET, &GFD_SET, &SERVER_NAME, windowSize);
     printf("--Initing client_dis_connect---\n");
-    client_dis_connect(&GSOCKET, GFD_SET);
+    client_dis_connect(&GSOCKET, GFD_SET, &SERVER_NAME);
 }
