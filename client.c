@@ -79,7 +79,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
 
                 ingsoc_init(&sSyn);
                 sSyn.SYN = true;
-
+                sSyn.length = windowSize;
                 //_writeMessage(*GSOCKET, (char*)&sSyn);
                 ingsoc_seqnr(&sSyn);
 
@@ -159,7 +159,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres) {
         }
     }
     printf("--- END ---\n\tEnded 3 way handsaheke function\n");
-    return 0;
+    return windowSize;
 }
 
 int client_dis_connect(int *GSOCKET, fd_set GFD_SET)
@@ -193,7 +193,7 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET)
     // close
     return 0;
 }
-void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo){
+void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize){
 
     int state;
     int running = 1;
@@ -265,10 +265,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 }
 void client_main(char *addres)
 {
-    int GSOCKET;
+    int GSOCKET, windowSize = 0;
     fd_set GFD_SET;
-    client_connect(&GSOCKET, &GFD_SET, addres);
-    SWSend(&GSOCKET, &GFD_SET, &SERVER_NAME);
+    windowSize = client_connect(&GSOCKET, &GFD_SET, addres);
+    SWSend(&GSOCKET, &GFD_SET, &SERVER_NAME, windowSize);
     printf("--Initing client_dis_connect---\n");
     client_dis_connect(&GSOCKET, GFD_SET);
 }
