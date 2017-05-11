@@ -40,12 +40,13 @@ typedef struct{
 
     bool ACK, FIN, RES, SYN;
     size_t ACKnr, SEQ, clientID;
-    short cksum, length;
+    unsigned short cksum, length;
     char data[255];
 
 }ingsoc;
 
 void ingsoc_init(ingsoc *ingsoc_i);
+void ingsoc_pretty_print(ingsoc *s);
 void ingsoc_seqnr(ingsoc *in);
 int toSerial(ingsoc *pakcage, char *out);
 ingsoc *fromSerial(char *buffer);
