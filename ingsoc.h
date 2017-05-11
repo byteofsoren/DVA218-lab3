@@ -40,17 +40,22 @@ typedef struct{
 
     bool ACK, FIN, RES, SYN;
     size_t ACKnr, SEQ, clientID;
-    unsigned short cksum, length;
-    char data[255];
+
+    short cksum, length;
+    char data[256];
+
 
 }ingsoc;
 
 void ingsoc_init(ingsoc *ingsoc_i);
 void ingsoc_pretty_print(ingsoc *s);
 void ingsoc_seqnr(ingsoc *in);
-int toSerial(ingsoc *pakcage, char *out);
-ingsoc *fromSerial(char *buffer);
-void ingsoc_readMessage(int fileDescriptor, ingsoc* pack,struct sockaddr_in *host_info);
+
+int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info);
+
 void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info);
 int checkSum(void *data, int length, int error);
+void input(char* msg);
+u_int CheckSumConf(void *cnf);
+size_t ingsoc_randomNr(size_t min, size_t max);
 #endif /* ifndef INGSOC */
