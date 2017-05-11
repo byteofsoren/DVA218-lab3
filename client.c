@@ -76,7 +76,9 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
 
                 //send syn
 
+
                 ingsoc_init(&sSyn);
+
                 sSyn.SYN = true;
                 sSyn.length = windowSize;
                 //_writeMessage(*GSOCKET, (char*)&sSyn);
@@ -95,6 +97,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
                         ingsoc rAck;
                         ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
+
 
                         if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
