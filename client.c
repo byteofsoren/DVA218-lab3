@@ -108,7 +108,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                             state = 1;
                         } else {
                             printf("!ACK + SYN recived\n");
-                            exit(EXIT_FAILURE);
+                            //exit(EXIT_FAILURE);
                         }
                         // Read from socket.
                         // om ACk -> state = 1;
