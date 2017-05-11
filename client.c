@@ -198,8 +198,12 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int running = 1;
     ingsoc toWrite, toRead;
     fd_set readFdSet;
+    ingsoc window[windowSize];
     struct timeval timer;
     int n = 0;
+    int windowPos = 0;
+    int toSend = 0;
+    int toACK = 0;
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
@@ -222,49 +226,58 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 toWrite.data[1] = '\0';
                 /* Generating SEQnr */
                 ingsoc_seqnr(&toWrite);
+                window[windowPos] = toWrite;
+
                 if(buffer[n] == '\0')
                 {
                     state = 4;
                 }
                 else
                 {
-                    state = 2;
+                    if(windowPos == windowSize - 1)
+                        state = 2;
+                    else windowPos++;
                 }
                 n++;
                 break;
             /* Case 2 - Send a package */
             case 2:
                 /* Sending the package to server */
-                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                for(toSend = 0; toSend < windowSize; toSend++)
+                {
+                    toWrite = window[toSend];
+                    ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                }
                 printf("Client - Package sent, waiting for ACK\n");
                 state = 3;
                 break;
             /* Case 1 - Waiting for ACK on package */
             case 3:
-                readFdSet = *activeFdSet;
-                /* Looking for changes in FD */
-                timer.tv_sec = 5;
-                if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
-                    perror("Client - Select failure");
-                /*  */
-                if(FD_ISSET(*fileDescriptor, &readFdSet)) {
-                    /* Reads the package from client */
-                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    /* If it receives the SYN it proceeds to the next state */
-                    if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                        printf("Client - ACK received\n");
-                        /* Ready to send a new package */
-                        state = 1;
-                    }
-                    else
-                    {
-                        printf("Client - ACK Corrupt, resending\n");
+                for(toACK = 0; toACK < windowSize; toACK++)
+                {
+                    toWrite = window[toACK];
+                    readFdSet = *activeFdSet;
+                    /* Looking for changes in FD */
+                    timer.tv_sec = 5;
+                    if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                        perror("Client - Select failure");
+                    /*  */
+                    if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+                        /* Reads the package from client */
+                        ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                        /* If it receives the SYN it proceeds to the next state */
+                        if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
+                            printf("Client - ACK received, Sequence nr: %d\n", (int)toWrite.SEQ);
+                            /* Ready to send a new package */
+                            state = 1;
+                        } else {
+                            printf("Client - ACK Corrupt, resending\n");
+                            state = 2;
+                        }
+                    } else {
+                        printf("Client - ACK Timeout, resending.\n");
                         state = 2;
                     }
-                }
-                else {
-                    printf("Client - ACK Timeout, resending.\n");
-                    state = 2;
                 }
                 break;
             case 4:

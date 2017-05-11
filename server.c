@@ -199,6 +199,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int state = 0;
     int running = 1;
     ingsoc toWrite, toRead;
+    ingsoc window[windowSize];
     fd_set readFdSet;
     struct timeval timer;
 
