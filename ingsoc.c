@@ -17,92 +17,111 @@ void ingsoc_init(ingsoc *insoci)
 }
 
 size_t convert_size_t(char *buffer, size_t pos, size_t data){
+    /* This function copies the data type size_t to the array
+     * it works by byte by byte copy from en memory region to the next
+     * memory region in this case we don't get readable text in the buffer
+     * because sice_t is 8 byte big and if we copy one of those bytes to a
+     * char we get for human unreadable data */
     int length = sizeof(size_t);
     char temp[length];
+    /* A buffer is created to temporary store the data
+     * Then we set the entire buffer to 0 for safety */
     memset(temp, 0 , length);
-    //printf("temp=%s, pos=%ld\n", temp, pos);
-    //osnprintf(temp, length, "%ld", data);
+    /* Bitwise copy of data form the data type size_t to the char array */
     memcpy(temp,&data,length);
+    /* Copy the data form the temporary buffer to the outside buffer*/
     memcpy(buffer + pos, temp, sizeof(size_t));
+    /* We now have to update our position in the buffer
+     * there of length + pos */
     return length + pos;
 }
 
 size_t convert_short(char *buffer, size_t pos, unsigned short data){
-    //int length = sizeof(short) * sizeof(char);
+    /* Doe's the same ass the convert_sicze_t but for the 
+     * data type unsigned short */
     int length = sizeof(short);
     char temp[length];
-    //temp[length ] = '\n';
     memset(temp, 0 , length);
-    //printf("convert_shor length=`%d, temp=%s, pos=%ld, data=%d\n",length, temp, pos, data);
-    //snprintf(temp, length, "%d", data);
     memcpy(temp,&data,length);
-
     memcpy(buffer + pos, temp, sizeof(short));
     return length + pos;
 }
 
 int toSerial(ingsoc *package, char *out){
+    /* This function serialize the struct int tho a char array
+     * It does that by byce coppy*/
     int bytes = 0;
     bytes = (int) sizeof(ingsoc) + 10;
+    /* First we created a int to store the pos in the array
+     * Then we create a buffer on the stack */
     char buffer[bytes + 3];
     memset(buffer, 0 , bytes + 2);
-    //printf("---Buffer---\n%s\n---Buffer---\n", buffer);
     buffer[bytes+3] = '\0';
-    //buffer[0] = package->ACK;
+    /* For safety we write zeros tho the entire array
+     * What happens below is we use the first 4 bytes to store the boolean value*/
     buffer[0] = (package->ACK) ? 't' : 'f';
-    //printf("ACK in buffer is %c\n", buffer[0]);
     buffer[1] = (package->FIN) ? 't' : 'f';
     buffer[2] = (package->RES) ? 't' : 'f';
     buffer[3] = (package->SYN) ? 't' : 'f';
+    /* The state abode is an compressed if else statement, for example
+     * buffer[0] = (package->ACX ? 't' : ':f' Can be written as
+     * if(package-->ACK) buffer[0]='t';
+     * else buffer[0]='f'
+     * Its just more compact*/
     int counter = 4;
-    //printf("buffer %s\n" ,buffer);
-    /*char temp[sizeof(size_t)];
-    snprintf(temp, sizeof(size_t), "%ld", package->ACKnr);
-    memcpy(buffer + counter, temp, sizeof(size_t));
-*/
+    /* The counter from this point just keeps track of the pos in the array
+     * then the different functions copies the data form the struct to the
+     * buffer*/
     counter = convert_size_t(buffer, counter, package->ACKnr);
     counter = convert_size_t(buffer, counter, package->SEQ);
     counter = convert_size_t(buffer, counter, package->clientID);
     counter = convert_short(buffer,  counter, package->cksum);
     counter = convert_short(buffer, counter, package->length);
+    /* Bitwise copy of the data in the struct to the buffer array*/
     memcpy(buffer + counter, package->data, 255);
-
+    /* Then we copy the buffer out of stack back to the out pointer */
     memcpy(out, buffer, bytes);
     return bytes;
 }
 size_t revert_size_t(char *buffer, size_t pos, size_t *data){
+    /* This function reads the data out of the buffer and assigns it back to
+     * the pointer *data */
     size_t length = sizeof(size_t);
     char temp[length];
+    /* Create a temporary buffer to store a part of the buffer
+     * Then we bitwise copy the data back out of the temporary buffer */
     memcpy(temp, buffer + pos, sizeof(size_t));
-    //printf("temp=%s",temp);
-    //*data = atoi(temp);
     memcpy(data,temp,length);
+    /* We still need to keep our place in the buffer so return the new position
+     * to the counter in fromSerial */
     return length + pos;
 }
 
 size_t revert_short(char *buffer, size_t pos, unsigned short *data){
+    /* Same as revert_size_t but for the data type unsigned short */
     size_t length = sizeof(short);
     char temp[length];
-    printf("revert_short buffer=%s pos=%ld lengt=%ld\n" , buffer, pos, length);
     memcpy(temp, buffer + pos, sizeof(short));
-    printf("short_temp=%s\n",temp);
-    //*data = atoi(temp);
     memcpy(data,temp,length);
     return length + pos;
 }
 ingsoc *fromSerial(char *buffer){
+    /* Does the exact opposite of toSerial it converts the buffer to an ingsock*/
     ingsoc *pack= (ingsoc*)calloc(1, sizeof(ingsoc));
-    //size_t bytes = sizeof(ingsoc);
+    /* Creating the strut on the heap.
+     * The first 4 bytes of the Buffer contains the information nedded to set
+     * the structs boolean variable */
     pack->ACK = (buffer[0] == 't') ? true:false;
     pack->FIN = (buffer[1] == 't') ? true:false;
     pack->RES = (buffer[2] == 't') ? true:false;
     pack->SYN = (buffer[3] == 't') ? true:false;
-    /*char temp[sizeof(size_t)];
-    memcpy(temp, buffer + 4, sizeof(size_t));
-    printf("temp=%s",temp);
-    pack->ACKnr = atoi(temp);
-    */
+    /* To understand how that syntax works please read 
+     * the toSerial function abode */
     size_t counter = 4;
+    /* The counter above keaps the place in the data. The functions below reads
+     * the data form the buffer and assign them tho the right field in the
+     * structure, notice that the order in this function is the same as
+     * toSerial function */
     counter = revert_size_t(buffer, counter, &pack->ACKnr);
     counter = revert_size_t(buffer, counter, &pack->SEQ);
     counter = revert_size_t(buffer, counter, &pack->clientID);
@@ -121,7 +140,7 @@ short ingsoc_cksum(char *buffer, int length){
 }
 u_int CheckSumConf(void *cnf)
 {
-    int i;
+    size_t i;
     u_int chk=0;
     unsigned char *data;
 
