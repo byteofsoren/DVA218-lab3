@@ -248,7 +248,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     toSerial(data,buffer);
 
     data->cksum = ingsoc_cksum(buffer, buffer_size);
-    //printf("%d\n",data->cksum);
+    
     nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     if(nOfBytes < 0){
         perror("writeMessage - Could not WRITE data\n");

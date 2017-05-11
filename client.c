@@ -163,29 +163,35 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
 
 int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_NAME)
 {
-    /* This is the disconect functino */
-    printf("--- INIT---\n\tIniting a client client_dis_connect\n");
+    /* This is the disconnect function */
+    printf("Initing a client client_dis_connect\n");
+    int counter = 3;
     ingsoc sFin;
     ingsoc_init(&sFin);
+    ingsoc_seqnr(&sFin);
     sFin.FIN = true;
-    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-    struct timeval timer;
-    timer.tv_sec = 10;
-    timer.tv_usec = 0;
-    printf("Waiting for fin + ack\n");
-    FD_SET(*GSOCKET, &GFD_SET);
-    int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
-    if(stemp == -1) perror("select");
-    if (FD_ISSET(*GSOCKET, &GFD_SET )) {
-        // Reads message for server.
-        ingsoc rAck;
-        ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
-        if (rAck.ACK == true && rAck.FIN == true) {
-            printf("Recived fin + ack");
-            sFin.ACK = true;
-            ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-            // Do i need tto do any discconecting on UDP?
+    while(counter >= 0) {
+        ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+        struct timeval timer;
+        timer.tv_sec = 10;
+        timer.tv_usec = 0;
+        printf("Waiting for fin + ack\n");
+
+        int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
+        if (stemp == -1) perror("select");
+        if (FD_ISSET(*GSOCKET, &GFD_SET)) {
+            // Reads message for server.
+            ingsoc rAck;
+            ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
+            if (rAck.ACK == true && rAck.FIN == true) {
+                printf("Recived fin + ack");
+                sFin.ACK = true;
+                ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+                return 0;
+                // Do i need tto do any discconecting on UDP?
+            }
         }
+        counter--;
     }
     // wait for FIN + ACK
     // Send ACK + FIN
@@ -211,6 +217,15 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
         state = 0;
 
     do {
+        readFdSet = *activeFdSet;
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+            perror("Client - Select failure");
+        /*  */
+        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+            if (state != 2) {
+                state = 3;
+            }
+        }
         switch (state) {
 
             case 0:
@@ -256,10 +271,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 for(toACK = 0; toACK < windowSize; toACK++)
                 {
                     toWrite = window[toACK];
-                    readFdSet = *activeFdSet;
+
                     /* Looking for changes in FD */
                     timer.tv_sec = 5;
-                    if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                    /*if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                         perror("Client - Select failure");
                     /*  */
                     if (FD_ISSET(*fileDescriptor, &readFdSet)) {
