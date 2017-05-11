@@ -47,8 +47,8 @@ typedef struct{
 
 void ingsoc_init(ingsoc *ingsoc_i);
 void ingsoc_seqnr(ingsoc *in);
-void ingsoc_readMessage(int fileDescriptor, void* data ,struct sockaddr_in *host_info);
-void ingsoc_writeMessage(int fileDescriptor, void* data, int length, struct sockaddr_in *host_info);
+int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info);
+void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info);
 int checkSum(void *data, int length, int error);
 void input(char* msg);
 u_int CheckSumConf(void *cnf);
