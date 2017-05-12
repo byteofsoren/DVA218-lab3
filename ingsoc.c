@@ -79,7 +79,7 @@ int toSerial(ingsoc *package, char *out){
     counter = convert_short(buffer, counter, package->length);
     /* Bitwise copy of the data in the struct to the buffer array*/
     memcpy(buffer + counter, package->data, 255);
-    /* Then we copy the buffer out of stack back to the out pointer */
+    /* Then we copy the buffer out of stack back to the out inter */
     memcpy(out, buffer, bytes);
     return bytes;
 }
