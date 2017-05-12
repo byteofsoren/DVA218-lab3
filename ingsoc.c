@@ -211,7 +211,8 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     dataRead = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
     if(dataRead < 0){
         perror("readMessage - Could not READ data");
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
+        return -1;
     }
     sentChSum = data->cksum;
     data->cksum = 0;
@@ -239,7 +240,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
 
 bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_info, struct sockaddr_in *host_info_cpy){
     short CHANCE_TO_GET_CHKSUM_ERROR = 10;
-    short CHANCE_TO_GET_BAD_FD = 10;
+    short CHANCE_TO_GET_BAD_FD = 0;
     short CHANCE_TO_GET_WRONG_HOST_INFO = 10;
     printf("errorGenerator \e[032mStart\e[0m\n");
     int chkerror = ingsoc_randomNr(0,100);
@@ -253,7 +254,7 @@ bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_
     if(chkerror < CHANCE_TO_GET_BAD_FD)
     {
         printf("%sChange fileDescriptor\e[0m\n", errFormat);
-        //*fileDescriptor = 10;
+        *fileDescriptor = 10;
     }
     chkerror = ingsoc_randomNr(0,100);
     if(chkerror < CHANCE_TO_GET_WRONG_HOST_INFO){
@@ -279,15 +280,18 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     struct sockaddr_in *host_info_cpy;
     host_info_cpy = (struct sockaddr_in*) calloc(1, sizeof(struct sockaddr_in));
     bool err = false;
+    /* Error generator tho simulate error */
     err = errorGenerator(&fileDescriptor, data, host_info, host_info_cpy);
     if (err){
+        printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info_cpy->sin_port);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info_cpy,sizeof(*host_info));
     } else {
+        printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info->sin_port);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
     if(nOfBytes < 0){
-        perror("writeMessage - Could not WRITE data\n");
-        exit(EXIT_FAILURE);
+        perror("writeMessage - Could not WRITE data to socket\n");
+        //exit(EXIT_FAILURE);
     }
     free(host_info_cpy);
 }
