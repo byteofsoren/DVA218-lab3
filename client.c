@@ -198,23 +198,33 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
     // close
     return 0;
 }
-void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize){
+void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
 
-    int state;
+    ingsoc toWrite, toRead, window[windowSize];
+    ingsoc *queue = malloc(128 * sizeof(ingsoc));
+    int state = 0;
+    int i, nOfPack;
+    int startPos = 0;
+    int endPos = startPos + windowSize;
     int running = 1;
-    ingsoc toWrite, toRead;
+    int tmpPos;
+    char *buffer = malloc(128);
     fd_set readFdSet;
-    ingsoc window[windowSize];
     struct timeval timer;
-    int n = 0;
-    int windowPos = 0;
-    int toSend = 0;
-    int toACK = 0;
+
+    printf("Client - Message to send: \n");
+    input(buffer);
+    nOfPack = (int)strlen(buffer);
+
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
-    if(toWrite.data != 0)
-        state = 0;
+    for (i = 0; i < nOfPack; i++) {
+        toWrite.data[0] = buffer[i];
+        toWrite.data[1] = '\0';
+        ingsoc_seqnr(&toWrite);
+        queue[i] = toWrite;
+    }
 
     do {
         readFdSet = *activeFdSet;
@@ -227,84 +237,74 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             }
         }
         switch (state) {
-
             case 0:
-                printf("Message:\n");
-                char *buffer = malloc(512);
-                input(buffer);
+                tmpPos = startPos;
+                for (i = startPos; i < endPos; i++) {
+                    if(window[startPos].ACK == true){
+                        startPos++;
+                        endPos++;
+                    }else
+                        window[i] = queue[i];
+                }
+                startPos = tmpPos;
+                endPos = startPos + windowSize;
                 state = 1;
                 break;
+
             case 1:
-                /* Adding the message to the package */
-                //strcpy(toWrite.data, buffer[n]);
-                toWrite.data[0] = buffer[n];
-                toWrite.data[1] = '\0';
-                /* Generating SEQnr */
-                ingsoc_seqnr(&toWrite);
-                window[windowPos] = toWrite;
 
-                if(buffer[n] == '\0')
-                {
-                    state = 4;
+                for(i = startPos; i < endPos; i++){
+                    ingsoc_writeMessage(*fileDescriptor, &window[i], sizeof(toWrite), hostInfo);
+                    printf("Client - Package %d sent, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
+                    window[i].ACK = true;
                 }
-                else
-                {
-                    if(windowPos == windowSize - 1)
-                        state = 2;
-                    else windowPos++;
-                }
-                n++;
+                state = 2;
                 break;
-            /* Case 2 - Send a package */
+
             case 2:
-                /* Sending the package to server */
-                for(toSend = 0; toSend < windowSize; toSend++)
-                {
-                    toWrite = window[toSend];
-                    ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                }
-                printf("Client - Package sent, waiting for ACK\n");
-                state = 3;
-                break;
-            /* Case 1 - Waiting for ACK on package */
-            case 3:
-                for(toACK = 0; toACK < windowSize; toACK++)
-                {
-                    toWrite = window[toACK];
+                readFdSet = *activeFdSet;
+                /* Looking for changes in FD */
+                timer.tv_sec = 5;
+                if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                    perror("Client - Select failure");
 
-                    /* Looking for changes in FD */
-                    timer.tv_sec = 5;
-                    /*if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
-                        perror("Client - Select failure");
-                    /*  */
-                    if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-                        /* Reads the package from client */
-                        ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                        /* If it receives the SYN it proceeds to the next state */
-                        if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                            printf("Client - ACK received, Sequence nr: %d\n", (int)toWrite.SEQ);
-                            /* Ready to send a new package */
-                            state = 1;
-                        } else {
-                            printf("Client - ACK Corrupt, resending\n");
-                            state = 2;
-                        }
-                    } else {
-                        printf("Client - ACK Timeout, resending.\n");
-                        state = 2;
+                if(FD_ISSET(*fileDescriptor, &readFdSet)) {
+                    /* Reads package from client */
+                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+
+                    if(toRead.ACK == true && toRead.ACKnr == window[startPos].SEQ) {
+                        printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
+                        startPos++;
+                        endPos++;
+                        state = 1;
+                        if(endPos == nOfPack)
+                            state = 3;
+                    }else {
+                        printf("Client - ACK %d corrupt, resending\n", startPos);
+                        ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);
+
                     }
+                }else {
+                    printf("Client - Timeout on package %d, resending\n", startPos);
+                    ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);
                 }
                 break;
-            case 4:
-                printf("Client - End of message\n");
 
+            case 3:
+
+                printf("Client - No more packages to send");
+                ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
                 toWrite.FIN = true;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 running = 0;
+                free(buffer);
+                free(window);
+                free(queue);
+
                 break;
         }
-    }while(running == 1);
+    } while(running == 1);
 }
 void client_main(char *addres)
 {
