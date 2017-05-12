@@ -82,6 +82,7 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
             if (toRead.ACK == true)
             {
                 printf("Server - FIN ACK received, disconnecting.\n");
+                n = 4;
             }
             else
             {
@@ -196,75 +197,62 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
 }
 void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize){
 
-    int state = 0;
-    int running = 1;
     ingsoc toWrite, toRead;
-    ingsoc window[windowSize];
+    int state = 0;
+    int startPos = 0;
+    int running = 1;
+    int endPos = startPos + windowSize;
+    int i;
     fd_set readFdSet;
-    struct timeval timer;
 
-    ingsoc_init(&toWrite);
+    ingsoc window[windowSize];
+    ingsoc *ACKed = malloc(128 * sizeof(ingsoc));
+
     ingsoc_init(&toRead);
+    ingsoc_init(&toWrite);
 
     do {
         switch (state) {
-            /* Case 0 - "Idle state" Wait for incoming msg */
+
             case 0:
+
                 readFdSet = *activeFdSet;
-                /* Looking for changes in FD */
+
                 if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0)
                     perror("Server - Select failure");
-                /*  */
+
                 if (FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads the package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    if(toRead.FIN == true)
-                        state = 5;
+                    if (toRead.FIN == true)
+                        state = 2;
                     else
                         state = 1;
                 }
-                /* If everything is in order, proceed to state 1 to read msg */
                 break;
-                /* Case 1 - Reads and prints message */
+
             case 1:
-                printf("Server - MSG received: ");
-                printf("%s\n",toRead.data);
 
-                state = 2;
-                break;
-                /* Case 2 - Everything is in order so we send and ACK to the client */
-            case 2:
-                ingsoc_seqnr(&toWrite);
-
+                printf("Server - Package %d received, SEQnr: %d", startPos, (int)toRead.SEQ);
                 toWrite.ACK = true;
+                toRead.ACK = true;
                 toWrite.ACKnr = toRead.SEQ;
-
+                ACKed[startPos] = toRead;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                printf("Server - ACK sent [TEST COMPLETE so far]\n");
-
+                startPos++;
+                endPos++;
                 state = 0;
                 break;
-                /* Case 3 - Checks if window is full */
-            case 3:
-                /* If(window == full)
-                 * state = 4;
-                 * else
-                 * readmsg; */
-                state = 4;
-                break;
-                /* Case 4 - Move window if window is full */
-            case 4:
-                /* Window++
-                 * readmsg; */
 
-                break;
-            case 5:
-                printf("Server - No more incoming packages.\n");
+            case 2:
+                printf("Server - No more packages\n");
+                printf("Message: ");
+                for(i = 0; i <= startPos; i++)
+                    printf("%c", ACKed[i].data[0]);
                 running = 0;
                 break;
         }
-
-    } while (running == 1);
+    }while(running == 1);
 }
 void Server_Main(int arg){
 
@@ -286,6 +274,7 @@ void Server_Main(int arg){
 
     windowSize = Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
     SWRecv(&fileDescriptor, &activeFdSet, &hostInfo, windowSize);
+    server_disconnect(&fileDescriptor, &activeFdSet, &hostInfo);
 
 }
 
