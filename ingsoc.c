@@ -79,7 +79,7 @@ int toSerial(ingsoc *package, char *out){
     counter = convert_short(buffer, counter, package->length);
     /* Bitwise copy of the data in the struct to the buffer array*/
     memcpy(buffer + counter, package->data, 255);
-    /* Then we copy the buffer out of stack back to the out pointer */
+    /* Then we copy the buffer out of stack back to the out inter */
     memcpy(out, buffer, bytes);
     return bytes;
 }
@@ -277,6 +277,8 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     memset(buffer, 0, buffer_size);
     data->cksum = 0;
     toSerial(data,buffer);
+
+    data->cksum = ingsoc_cksum(buffer, buffer_size);
     struct sockaddr_in *host_info_cpy;
     host_info_cpy = (struct sockaddr_in*) calloc(1, sizeof(struct sockaddr_in));
     bool err = false;
@@ -289,6 +291,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info->sin_port);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
+
     if(nOfBytes < 0){
         perror("writeMessage - Could not WRITE data to socket\n");
         //exit(EXIT_FAILURE);

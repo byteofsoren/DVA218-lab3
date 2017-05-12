@@ -163,120 +163,148 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
 
 int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_NAME)
 {
-    /* This is the disconect functino */
-    printf("--- INIT---\n\tIniting a client client_dis_connect\n");
+    /* This is the disconnect function */
+    printf("Initing a client client_dis_connect\n");
+    int counter = 3;
     ingsoc sFin;
     ingsoc_init(&sFin);
+    ingsoc_seqnr(&sFin);
     sFin.FIN = true;
-    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-    struct timeval timer;
-    timer.tv_sec = 10;
-    timer.tv_usec = 0;
-    printf("Waiting for fin + ack\n");
-    FD_SET(*GSOCKET, &GFD_SET);
-    int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
-    if(stemp == -1) perror("select");
-    if (FD_ISSET(*GSOCKET, &GFD_SET )) {
-        // Reads message for server.
-        ingsoc rAck;
-        ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
-        if (rAck.ACK == true && rAck.FIN == true) {
-            printf("Recived fin + ack");
-            sFin.ACK = true;
-            ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-            // Do i need tto do any discconecting on UDP?
+    while(counter >= 0) {
+        ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+        struct timeval timer;
+        timer.tv_sec = 10;
+        timer.tv_usec = 0;
+        printf("Waiting for fin + ack\n");
+
+        int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
+        if (stemp == -1) perror("select");
+        if (FD_ISSET(*GSOCKET, &GFD_SET)) {
+            // Reads message for server.
+            ingsoc rAck;
+            ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
+            if (rAck.ACK == true && rAck.FIN == true) {
+                printf("Recived fin + ack");
+                sFin.ACK = true;
+                ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+                return 0;
+                // Do i need tto do any discconecting on UDP?
+            }
         }
+        counter--;
     }
     // wait for FIN + ACK
     // Send ACK + FIN
     // close
     return 0;
 }
-void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize){
+void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
 
-    int state;
+    ingsoc toWrite, toRead, window[windowSize];
+    ingsoc *queue = malloc(128 * sizeof(ingsoc));
+    int state = 0;
+    int i, nOfPack;
+    int startPos = 0;
+    int endPos = startPos + windowSize;
     int running = 1;
-    ingsoc toWrite, toRead;
+    int tmpPos;
+    char *buffer = malloc(128);
     fd_set readFdSet;
     struct timeval timer;
-    int n = 0;
+
+    printf("Client - Message to send: \n");
+    input(buffer);
+    nOfPack = (int)strlen(buffer);
+
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
-    if(toWrite.data != 0)
-        state = 0;
+    for (i = 0; i < nOfPack; i++) {
+        toWrite.data[0] = buffer[i];
+        toWrite.data[1] = '\0';
+        ingsoc_seqnr(&toWrite);
+        queue[i] = toWrite;
+    }
 
     do {
+        readFdSet = *activeFdSet;
+        if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+            perror("Client - Select failure");
+        /*  */
+        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+            if (state != 2) {
+                state = 3;
+            }
+        }
         switch (state) {
-
             case 0:
-                printf("Message:\n");
-                char *buffer = malloc(512);
-                input(buffer);
+                tmpPos = startPos;
+                for (i = startPos; i < endPos; i++) {
+                    if(window[startPos].ACK == true){
+                        startPos++;
+                        endPos++;
+                    }else
+                        window[i] = queue[i];
+                }
+                startPos = tmpPos;
+                endPos = startPos + windowSize;
                 state = 1;
                 break;
+
             case 1:
-                /* Adding the message to the package */
-                //strcpy(toWrite.data, buffer[n]);
-                toWrite.data[0] = buffer[n];
-                toWrite.data[1] = '\0';
-                /* Generating SEQnr */
-                ingsoc_seqnr(&toWrite);
-                if(buffer[n] == '\0')
-                {
-                    state = 4;
+
+                for(i = startPos; i < endPos; i++){
+                    ingsoc_writeMessage(*fileDescriptor, &window[i], sizeof(toWrite), hostInfo);
+                    printf("Client - Package %d sent, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
+                    window[i].ACK = true;
                 }
-                else
-                {
-                    state = 2;
-                }
-                n++;
+                state = 2;
                 break;
-            /* Case 2 - Send a package */
+
             case 2:
-                /* Sending the package to server */
-                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                printf("Client - Package sent, waiting for ACK\n");
-                state = 3;
-                break;
-            /* Case 1 - Waiting for ACK on package */
-            case 3:
                 readFdSet = *activeFdSet;
                 /* Looking for changes in FD */
                 timer.tv_sec = 5;
-                if(select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                     perror("Client - Select failure");
-                /*  */
+
                 if(FD_ISSET(*fileDescriptor, &readFdSet)) {
-                    /* Reads the package from client */
+                    /* Reads package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    /* If it receives the SYN it proceeds to the next state */
-                    if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                        printf("Client - ACK received\n");
-                        /* Ready to send a new package */
+
+                    if(toRead.ACK == true && toRead.ACKnr == window[startPos].SEQ) {
+                        printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
+                        startPos++;
+                        endPos++;
                         state = 1;
+                        if(endPos == nOfPack)
+                            state = 3;
+                    }else {
+                        printf("Client - ACK %d corrupt, resending\n", startPos);
+                        ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);
+
                     }
-                    else
-                    {
-                        printf("Client - ACK Corrupt, resending\n");
-                        state = 2;
-                    }
-                }
-                else {
-                    printf("Client - ACK Timeout, resending.\n");
-                    state = 2;
+                }else {
+                    printf("Client - Timeout on package %d, resending\n", startPos);
+                    ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);
                 }
                 break;
-            case 4:
-                printf("Client - End of message\n");
 
+            case 3:
+
+                printf("Client - No more packages to send");
+                ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
                 toWrite.FIN = true;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 running = 0;
+                free(buffer);
+                free(window);
+                free(queue);
+
                 break;
         }
-    }while(running == 1);
+    } while(running == 1);
 }
 void client_main(char *addres)
 {
