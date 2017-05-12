@@ -237,6 +237,36 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
  * denoted by fileDescriptor.
  */
 
+bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_info, struct sockaddr_in *host_info_cpy){
+    short CHANCE_TO_GET_CHKSUM_ERROR = 10;
+    short CHANCE_TO_GET_BAD_FD = 10;
+    short CHANCE_TO_GET_WRONG_HOST_INFO = 10;
+    printf("errorGenerator \e[032mStart\e[0m\n");
+    int chkerror = ingsoc_randomNr(0,100);
+    bool ret = false;
+    char errFormat[] = "\e[1;31m";
+    if(chkerror < CHANCE_TO_GET_CHKSUM_ERROR){
+        printf("%sChec sum error\e[0m\n", errFormat);
+        data->cksum  = 6543;
+    }
+    chkerror = ingsoc_randomNr(0,100);
+    if(chkerror < CHANCE_TO_GET_BAD_FD)
+    {
+        printf("%sChange fileDescriptor\e[0m\n", errFormat);
+        //*fileDescriptor = 10;
+    }
+    chkerror = ingsoc_randomNr(0,100);
+    if(chkerror < CHANCE_TO_GET_WRONG_HOST_INFO){
+        printf("%sCreate error host_info\e[0m\n",errFormat);
+        host_info_cpy = host_info;
+        host_info_cpy->sin_port = 543;
+        ret = true;
+    }
+    printf("errorGenerator \e[033mEND\e[0m\n");
+
+    return ret;
+}
+
 void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info) {
 
     int nOfBytes;
@@ -248,12 +278,21 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     toSerial(data,buffer);
 
     data->cksum = ingsoc_cksum(buffer, buffer_size);
-    //printf("%d\n",data->cksum);
-    nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
+    struct sockaddr_in *host_info_cpy;
+    host_info_cpy = (struct sockaddr_in*) calloc(1, sizeof(struct sockaddr_in));
+    bool err = false;
+    err = errorGenerator(&fileDescriptor, data, host_info, host_info_cpy);
+    if (err){
+        nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info_cpy,sizeof(*host_info));
+    } else {
+        nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
+    }
+
     if(nOfBytes < 0){
         perror("writeMessage - Could not WRITE data\n");
         exit(EXIT_FAILURE);
     }
+    free(host_info_cpy);
 }
 /* XOR Checksum calculator
  * input:
