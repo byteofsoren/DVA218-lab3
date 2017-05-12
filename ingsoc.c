@@ -294,7 +294,9 @@ bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_
 }
 
 void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info) {
-
+    /* Ingsoc writeMessage is the function writes the data in the insoc
+     * structure to the socket but first we calculate the check sum for the
+     * gackage, that is done in the ingsoc cksum function */
     int nOfBytes;
     size_t buffer_size = sizeof(ingsoc) + 10;
     char buff[buffer_size];
