@@ -201,12 +201,15 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
 void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
 
     ingsoc toWrite, toRead, window[windowSize];
-    ingsoc *queue = malloc(128 * sizeof(ingsoc));
+    ingsoc *queue = malloc(windowSize * sizeof(ingsoc));
     int state = 0;
     int i, nOfPack;
     int startPos = 0;
     int endPos = startPos + windowSize;
     int running = 1;
+    int PlaceInWindow = 0;
+    int NrInWindow = 0;
+    int PlaceInMessage = 0;
     int tmpPos;
     char *buffer = malloc(128);
     fd_set readFdSet;
@@ -219,46 +222,58 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
-    for (i = 0; i < nOfPack; i++) {
-        toWrite.data[0] = buffer[i];
-        toWrite.data[1] = '\0';
-        ingsoc_seqnr(&toWrite);
-        queue[i] = toWrite;
-    }
+    /*for (i = 0; i < nOfPack; i++) {
+
+    }*/
 
     do {
+        timer.tv_usec = 1;
+        timer.tv_sec = 0;
         readFdSet = *activeFdSet;
         if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
             perror("Client - Select failure");
         /*  */
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            if (state != 2) {
-                state = 3;
+            if (state != 1) {
+                state = 2;
             }
         }
         switch (state) {
             case 0:
-                tmpPos = startPos;
-                for (i = startPos; i < endPos; i++) {
-                    if(window[startPos].ACK == true){
-                        startPos++;
-                        endPos++;
-                    }else
-                        window[i] = queue[i];
+                if(NrInWindow < windowSize)
+                {
+                    toWrite.data[0] = buffer[PlaceInMessage];
+                    toWrite.data[1] = '\0';
+                    ingsoc_seqnr(&toWrite);
+                    //queue[i] = toWrite;
+                    queue[PlaceInWindow] = toWrite;
+                    NrInWindow++;
+
+                    if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
+                    {
+                        state = 3;
+                    }
+                    PlaceInMessage++;
+
+                    state = 1;
                 }
-                startPos = tmpPos;
-                endPos = startPos + windowSize;
-                state = 1;
+                else
+                {
+                    usleep(5000000);
+                    printf("hej\n");
+                }
+
                 break;
 
             case 1:
-
-                for(i = startPos; i < endPos; i++){
-                    ingsoc_writeMessage(*fileDescriptor, &window[i], sizeof(toWrite), hostInfo);
-                    printf("Client - Package %d sent, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
-                    window[i].ACK = true;
+                ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(toWrite), hostInfo);
+                printf("Client - Package %d sent, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
+                PlaceInWindow++;
+                if (PlaceInWindow >= windowSize) {
+                    PlaceInWindow = 0;
                 }
-                state = 2;
+
+                state = 0;
                 break;
 
             case 2:
@@ -274,11 +289,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                     if(toRead.ACK == true && toRead.ACKnr == window[startPos].SEQ) {
                         printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
-                        startPos++;
-                        endPos++;
+
                         state = 1;
-                        if(endPos == nOfPack)
-                            state = 3;
+
                     }else {
                         printf("Client - ACK %d corrupt, resending\n", startPos);
                         ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);

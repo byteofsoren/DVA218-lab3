@@ -201,12 +201,13 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int state = 0;
     int startPos = 0;
     int running = 1;
+    int PlaceInWindow = 0;
     int endPos = startPos + windowSize;
     int i;
     fd_set readFdSet;
 
     ingsoc window[windowSize];
-    ingsoc *ACKed = malloc(128 * sizeof(ingsoc));
+    ingsoc *Window = malloc(windowSize * 2 * sizeof(ingsoc));
 
     ingsoc_init(&toRead);
     ingsoc_init(&toWrite);
@@ -227,29 +228,29 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     if (toRead.FIN == true)
                         state = 2;
                     else
+                        window[PlaceInWindow] = toRead;
                         state = 1;
                 }
                 break;
 
             case 1:
 
-                printf("Server - Package %d received, SEQnr: %d", startPos, (int)toRead.SEQ);
+                printf("Server - Package %d received, SEQnr: %d\n", startPos, (int)(window[PlaceInWindow]).SEQ);
                 toWrite.ACK = true;
                 toRead.ACK = true;
                 toWrite.ACKnr = toRead.SEQ;
-                ACKed[startPos] = toRead;
-                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                startPos++;
-                endPos++;
+                //ACKed[startPos] = toRead;
+                //ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+
                 state = 0;
                 break;
 
             case 2:
-                printf("Server - No more packages\n");
+                /*printf("Server - No more packages\n");
                 printf("Message: ");
                 for(i = 0; i <= startPos; i++)
                     printf("%c", ACKed[i].data[0]);
-                running = 0;
+                running = 0;*/
                 break;
         }
     }while(running == 1);
