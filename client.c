@@ -66,7 +66,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     bool running = 1;
     int i = 0, counter = 5;
     size_t ACK_NR = 0;
-    int windowSize = 1; //ingsoc_randomNr(2, 5);
+    int windowSize = ingsoc_randomNr(2, 10);
     ingsoc sSyn;
     //FD_ZERO(&GFD_SET);
     //FD_SET(*GSOCKET, &GFD_SET);
@@ -215,8 +215,8 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     char *buffer = malloc(128);
     fd_set readFdSet;
     struct timeval timer;
-    bool populated[10];
-    for (i = 0; i < 10; i++)
+    bool *populated = malloc(windowSize * sizeof(bool));
+    for (i = 0; i < windowSize; i++)
     {
         populated[i] = false;
     }
