@@ -66,7 +66,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     bool running = 1;
     int i = 0, counter = 5;
     size_t ACK_NR = 0;
-    int windowSize = ingsoc_randomNr(2, 5);
+    int windowSize = 1; //ingsoc_randomNr(2, 5);
     ingsoc sSyn;
     //FD_ZERO(&GFD_SET);
     //FD_SET(*GSOCKET, &GFD_SET);
@@ -235,7 +235,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     do {
         for (i = 0; i < windowSize; i++)
         {
-            if((clock() - sent[i]) > 200000 && populated[i] == true)
+            if((clock() - sent[i]) > 20000000 && populated[i] == true)
             {
                 state = 3;
                 PackToResend = i;
@@ -258,6 +258,12 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 0:
                 if(NrInWindow < windowSize && populated[PlaceInWindow] == false)
                 {
+                    state = 1;
+                    if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
+                    {
+                        state = 4;
+                    }
+                    PlaceInMessage++;
                     toWrite.data[0] = buffer[PlaceInMessage];
                     toWrite.data[1] = '\0';
                     ingsoc_seqnr(&toWrite);
@@ -267,14 +273,6 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     populated[PlaceInWindow] = true;
                     NrInWindow++;
 
-                    if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
-                    {
-                        state = 4;
-                    }
-                    PlaceInMessage++;
-
-
-                    state = 1;
                 }
                 else {
                     timer.tv_usec = 100;
@@ -321,7 +319,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                             printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
                             NrInWindow--;
                             populated[i] = false;
-                            state = 1;
+                            state = 0;
 
                         }
                     }
@@ -347,7 +345,6 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 running = 0;
                 free(buffer);
-                free(window);
                 free(queue);
 
                 break;

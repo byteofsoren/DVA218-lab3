@@ -209,7 +209,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int i;
     fd_set readFdSet;
 
-    ingsoc window[windowSize];
+    //ingsoc window[windowSize];
     ingsoc *Window = malloc(windowSize * 2 * sizeof(ingsoc));
     bool populated[10];
     for(i = 0; i < 10; i++)
@@ -236,33 +236,34 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     else {
                         for(i = 0; i < windowSize; i++)
                         {
-                            if(toRead.SEQ == window[i].SEQ && populated[i] == true)
+                            if(toRead.SEQ == Window[i].SEQ && populated[i] == true)
                             {
                                 state = 1;
                             }
                         }
                         if(state != 1)
                         {
+
                             if(LatestRecSeq - toRead.SEQ < 1000)
                             {
                                 state = 1;
-                                if(windowSize-NrInWindow >= LatestRecSeq - toRead.SEQ) {
-                                    toACK = PlaceInWindow + (LatestRecSeq - toRead.SEQ);
-                                    window[toACK] = toRead;
-                                    populated[toACK] = true;
-                                    if(toACK == PlaceInWindow + 1)
+                                                            }
+                            else if(toRead.SEQ - LatestRecSeq <= windowSize-NrInWindow)
+                            {
+                                state = 1;
+                                toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq);
+                                Window[toACK] = toRead;
+                                populated[toACK] = true;
+                                if(toACK == (PlaceInWindow + 1))
+                                {
+                                    LatestRecSeq = toRead.SEQ;
+                                    PlaceInWindow++;
+                                    if(PlaceInWindow >= windowSize)
                                     {
-                                        LatestRecSeq = toRead.SEQ;
-                                        PlaceInWindow++;
-                                        if(PlaceInWindow >= windowSize)
-                                        {
-                                            PlaceInWindow = 0;
-                                        }
+                                        PlaceInWindow = 0;
                                     }
-                                    NrInWindow++;
-
                                 }
-
+                                NrInWindow++;
                             }
                         }
                     }
@@ -277,8 +278,14 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 toWrite.ACK = true;
                 toWrite.ACKnr = toRead.SEQ;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
+                printf("Sending ACK on %d\n", (int) toWrite.ACKnr);
+                state = 0;
+                NrInWindow--;
                 break;
-
+            case 8:
+                printf("send fin + Ackn");
+                running = 0;
+                break;
         }
 
     }while(running == 1);
