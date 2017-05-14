@@ -263,9 +263,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     {
                         state = 4;
                     }
-                    PlaceInMessage++;
                     toWrite.data[0] = buffer[PlaceInMessage];
                     toWrite.data[1] = '\0';
+                    PlaceInMessage++;
                     ingsoc_seqnr(&toWrite);
                     //queue[i] = toWrite;
                     queue[PlaceInWindow] = toWrite;

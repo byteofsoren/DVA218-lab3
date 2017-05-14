@@ -253,17 +253,16 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                             else if(toRead.SEQ - LatestRecSeq <= windowSize-NrInWindow)
                             {
                                 state = 1;
-                                toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq);
+                                toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
+                                if(toACK >= windowSize)
+                                {
+                                    toACK -= windowSize;
+                                }
                                 Window[toACK] = toRead;
                                 populated[toACK] = true;
-                                if(toACK == (PlaceInWindow + 1))
+                                if(toACK == PlaceInWindow)
                                 {
                                     LatestRecSeq = toRead.SEQ;
-                                    PlaceInWindow++;
-                                    if(PlaceInWindow >= windowSize)
-                                    {
-                                        PlaceInWindow = 0;
-                                    }
                                 }
                                 else
                                 {
@@ -284,13 +283,23 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     message[PlaceInMessage] = Window[PlaceInWindow].data[0];
                     PlaceInMessage++;
                     PlaceInWindow++;
+                    if(PlaceInWindow >= windowSize)
+                    {
+                        PlaceInWindow = 0;
+                    }
+
                     while(populated[PlaceInWindow] == true && offset > 0)
                     {
                         message[PlaceInMessage] = Window[PlaceInWindow].data[0];
                         PlaceInWindow++;
+                        if(PlaceInWindow >= windowSize)
+                        {
+                            PlaceInWindow = 0;
+                        }
                         PlaceInMessage++;
                         offset--;
                     }
+
                 }
                 ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
