@@ -256,7 +256,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
         }
         switch (state) {
             case 0:
-                if(NrInWindow < windowSize)
+                if(NrInWindow < windowSize && populated[PlaceInWindow] == false)
                 {
                     toWrite.data[0] = buffer[PlaceInMessage];
                     toWrite.data[1] = '\0';
@@ -272,6 +272,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         state = 4;
                     }
                     PlaceInMessage++;
+
 
                     state = 1;
                 }
@@ -315,21 +316,17 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 if(FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads package from client */
                     ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                    for (i = 0; i < windowSize; i++) {
+                        if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
+                            printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
+                            NrInWindow--;
+                            populated[i] = false;
+                            state = 1;
 
-                    if(toRead.ACK == true && toRead.ACKnr == window[startPos].SEQ) {
-                        printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
-
-                        state = 1;
-
-                    }else {
-                        printf("Client - ACK %d corrupt, resending\n", startPos);
-                        ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(ingsoc), hostInfo);
-
+                        }
                     }
-                }else {
-                    printf("Client - Timeout on package %d, resending\n", startPos);
-                    ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(ingsoc), hostInfo);
                 }
+
                 break;
 
 
