@@ -267,6 +267,7 @@ short _numberInJail(){
     return total;
 }
 
+
 bool _sendToJail(ingsoc *in){
     /* Sends a pacage to jail */
     int i = 0;
@@ -289,6 +290,7 @@ ingsoc *_getFirstFromJail(){
 }
 
 short errorGenerator( ingsoc* data ){
+
 
     printf("errorGenerator \e[032mStart\e[0m\n");
     short ret = 0;
@@ -341,6 +343,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     short err = 0;
 
     /* Error generator tho simulate error */
+
     err = errorGenerator(data);
     if( err == 4 | err == 2+4 | err == 1+2+4){
         /* Breakes a old data out of jail */
