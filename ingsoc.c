@@ -258,7 +258,7 @@ bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_
     /* A function to statistically create errors. The three first variables is
      * used for defining the chance of error between 0 and 100%, so 10 is 10%
      * chance to generate a error */
-    short CHANCE_TO_GET_CHKSUM_ERROR = 10;
+    short CHANCE_TO_GET_CHKSUM_ERROR = 20;
     short CHANCE_TO_GET_BAD_FD = 0;
     short CHANCE_TO_GET_WRONG_HOST_INFO = 0;
     /* In side the print statement below there is a control sequence that begins
@@ -314,10 +314,10 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     /* Error generator tho simulate error */
     err = errorGenerator(&fileDescriptor, data, host_info, host_info_cpy);
     if (err){
-        printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info_cpy->sin_port);
+        //printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info_cpy->sin_port);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info_cpy,sizeof(*host_info));
     } else {
-        printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info->sin_port);
+        //printf("ingsoc_writeMessage status: fileDescriptor=%d, cksum=%d, porT=%d\n", fileDescriptor, data->cksum, host_info->sin_port);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
 

@@ -247,7 +247,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                                 if (LatestRecSeq - toRead.SEQ < 1000) {
                                     state = 1;
-                                } else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
+                                }
+                                else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
                                     state = 1;
                                     toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
                                     if (toACK >= windowSize) {
@@ -275,6 +276,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 {
                     message[PlaceInMessage] = Window[PlaceInWindow].data[0];
                     PlaceInMessage++;
+                    populated[PlaceInWindow] = false;
                     PlaceInWindow++;
                     if(PlaceInWindow >= windowSize)
                     {
@@ -283,6 +285,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                     while(populated[PlaceInWindow] == true && offset > 0)
                     {
+                        populated[PlaceInWindow] = false;
+                        LatestRecSeq = Window[PlaceInWindow].SEQ;
                         message[PlaceInMessage] = Window[PlaceInWindow].data[0];
                         PlaceInWindow++;
                         if(PlaceInWindow >= windowSize)
