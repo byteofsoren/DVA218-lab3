@@ -238,9 +238,9 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
  */
 
 bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_info, struct sockaddr_in *host_info_cpy){
-    short CHANCE_TO_GET_CHKSUM_ERROR = 10;
-    short CHANCE_TO_GET_BAD_FD = 10;
-    short CHANCE_TO_GET_WRONG_HOST_INFO = 10;
+    short CHANCE_TO_GET_CHKSUM_ERROR = 0;
+    short CHANCE_TO_GET_BAD_FD = 0;
+    short CHANCE_TO_GET_WRONG_HOST_INFO = 0;
     printf("errorGenerator \e[032mStart\e[0m\n");
     int chkerror = ingsoc_randomNr(0,100);
     bool ret = false;

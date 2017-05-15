@@ -66,7 +66,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     bool running = 1;
     int i = 0, counter = 5;
     size_t ACK_NR = 0;
-    int windowSize = ingsoc_randomNr(1, 5);
+    int windowSize = ingsoc_randomNr(2, 10);
     ingsoc sSyn;
     //FD_ZERO(&GFD_SET);
     //FD_SET(*GSOCKET, &GFD_SET);
@@ -94,26 +94,26 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     }
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
                         ingsoc rAck;
-                        ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
+                        if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
+                        {
+                            if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
-                        if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
-
-                            ACK_NR = rAck.SEQ;
-                            /*int csum1 = rAck.cksum;
-                            rAck.cksum = 0;
-                            int csum = checkSum(&rAck, sizeof(rAck), 0);
-                            printf("skickad %d, räknad %d\n", csum1, csum);
-                            printf("ACK + SYN recived\n");*/
-                            windowSize = rAck.length;
-                            state = 1;
-                        } else {
-                            printf("!ACK + SYN recived\n");
-                            //exit(EXIT_FAILURE);
+                                ACK_NR = rAck.SEQ;
+                                /*int csum1 = rAck.cksum;
+                                rAck.cksum = 0;
+                                int csum = checkSum(&rAck, sizeof(rAck), 0);
+                                printf("skickad %d, räknad %d\n", csum1, csum);
+                                printf("ACK + SYN recived\n");*/
+                                windowSize = rAck.length;
+                                state = 1;
+                            } else {
+                                printf("!ACK + SYN recived\n");
+                                //exit(EXIT_FAILURE);
+                            }
+                            // Read from socket.
+                            // om ACk -> state = 1;
+                            // om ej ACK -> exit
                         }
-                        // Read from socket.
-                        // om ACk -> state = 1;
-                        // om ej ACK -> exit
-
                     } else {
                         printf("Time out counter is now %d\n", counter);
                         counter--;
@@ -182,13 +182,15 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
         if (FD_ISSET(*GSOCKET, &GFD_SET)) {
             // Reads message for server.
             ingsoc rAck;
-            ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
-            if (rAck.ACK == true && rAck.FIN == true) {
-                printf("Recived fin + ack");
-                sFin.ACK = true;
-                ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-                return 0;
-                // Do i need tto do any discconecting on UDP?
+            if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
+            {
+                if (rAck.ACK == true && rAck.FIN == true) {
+                    printf("Recived fin + ack");
+                    sFin.ACK = true;
+                    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+                    return 0;
+                    // Do i need tto do any discconecting on UDP?
+                }
             }
         }
         counter--;
@@ -201,16 +203,25 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
 void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
 
     ingsoc toWrite, toRead, window[windowSize];
-    ingsoc *queue = malloc(128 * sizeof(ingsoc));
+    ingsoc *queue = malloc(windowSize * sizeof(ingsoc));
+    clock_t *sent = malloc(windowSize * sizeof(clock_t));
     int state = 0;
-    int i, nOfPack;
+    int i, nOfPack, PackToResend;
     int startPos = 0;
     int endPos = startPos + windowSize;
     int running = 1;
+    int PlaceInWindow = 0;      //where in the windows we are
+    int NrInWindow = 0;     //how many packages there is in the window
+    int PlaceInMessage = 0;     //where in the string to be sent we are
     int tmpPos;
     char *buffer = malloc(128);
     fd_set readFdSet;
     struct timeval timer;
+    bool *populated = malloc(windowSize * sizeof(bool));
+    for (i = 0; i < windowSize; i++)
+    {
+        populated[i] = false;
+    }
 
     printf("Client - Message to send: \n");
     input(buffer);
@@ -219,47 +230,81 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
-    for (i = 0; i < nOfPack; i++) {
-        toWrite.data[0] = buffer[i];
-        toWrite.data[1] = '\0';
-        ingsoc_seqnr(&toWrite);
-        queue[i] = toWrite;
-    }
+    /*for (i = 0; i < nOfPack; i++) {
+
+    }*/
 
     do {
+        for (i = 0; i < windowSize; i++)
+        {
+            if((clock() - sent[i]) > 20000000 && populated[i] == true)
+            {
+                state = 3;
+                PackToResend = i;
+                i = windowSize;
+            }
+
+        }
+        timer.tv_usec = 1;
+        timer.tv_sec = 0;
         readFdSet = *activeFdSet;
         if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
             perror("Client - Select failure");
         /*  */
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            if (state != 2) {
-                state = 3;
+            if (state != 1 && state != 3) {
+                state = 2;
             }
         }
         switch (state) {
             case 0:
-                tmpPos = startPos;
-                for (i = startPos; i < endPos; i++) {
-                    if(window[startPos].ACK == true){
-                        startPos++;
-                        endPos++;
-                    }else
-                        window[i] = queue[i];
+                if(NrInWindow < windowSize && populated[PlaceInWindow] == false)
+                {
+                    state = 1;
+                    if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
+                    {
+                        state = 4;
+                    }
+                    toWrite.data[0] = buffer[PlaceInMessage];
+                    toWrite.data[1] = '\0';
+                    PlaceInMessage++;
+                    ingsoc_seqnr(&toWrite);
+                    //queue[i] = toWrite;
+                    queue[PlaceInWindow] = toWrite;
+                    sent[PlaceInWindow] = clock();
+                    populated[PlaceInWindow] = true;
+                    NrInWindow++;
+
                 }
-                startPos = tmpPos;
-                endPos = startPos + windowSize;
-                state = 1;
+                else {
+                    timer.tv_usec = 100;
+                    timer.tv_sec = 0;
+                    readFdSet = *activeFdSet;
+
+                    if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
+                        perror("Client - Select failure");
+                    /*  */
+                    if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+                        state = 2;
+                    }
+
+                }
+
                 break;
 
             case 1:
-
-                for(i = startPos; i < endPos; i++){
-                    ingsoc_writeMessage(*fileDescriptor, &window[i], sizeof(toWrite), hostInfo);
-                    printf("Client - Package %d sent, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
-                    window[i].ACK = true;
+                ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(ingsoc), hostInfo);
+                printf("Client - Package %d sent, SEQ nr: %d\n", PlaceInWindow, (int) (queue[PlaceInWindow]).SEQ);
+                sent[PlaceInWindow] = clock();
+                PlaceInWindow++;
+                if (PlaceInWindow >= windowSize) {
+                    PlaceInWindow = 0;
                 }
-                state = 2;
+
+                state = 0;
                 break;
+
+
 
             case 2:
                 readFdSet = *activeFdSet;
@@ -270,27 +315,36 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                 if(FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads package from client */
-                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
+                    {
+                        for (i = 0; i < windowSize; i++) {
+                            if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
+                                printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
+                                NrInWindow--;
+                                populated[i] = false;
+                                state = 0;
 
-                    if(toRead.ACK == true && toRead.ACKnr == window[startPos].SEQ) {
-                        printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int)toWrite.SEQ);
-                        startPos++;
-                        endPos++;
-                        state = 1;
-                        if(endPos == nOfPack)
-                            state = 3;
-                    }else {
-                        printf("Client - ACK %d corrupt, resending\n", startPos);
-                        ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);
-
+                            }
+                        }
                     }
-                }else {
-                    printf("Client - Timeout on package %d, resending\n", startPos);
-                    ingsoc_writeMessage(*fileDescriptor, &window[startPos], sizeof(toWrite), hostInfo);
+                    else
+                    {
+                        state = 0;
+                    }
                 }
+
                 break;
 
+
+
             case 3:
+                ingsoc_writeMessage(*fileDescriptor, &queue[PackToResend], sizeof(ingsoc), hostInfo);
+                printf("Client - Package %d resent , SEQ nr: %d\n", PackToResend, (int) (queue[PackToResend]).SEQ);
+                sent[PackToResend] = clock();
+                state = 0;
+
+                break;
+            case 4:
 
                 printf("Client - No more packages to send");
                 ingsoc_init(&toWrite);
@@ -299,7 +353,6 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 running = 0;
                 free(buffer);
-                free(window);
                 free(queue);
 
                 break;
