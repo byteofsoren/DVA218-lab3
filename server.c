@@ -77,18 +77,18 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
             perror("Server - Select failure");
 
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+            if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == -1) {
+                toRead.ACK = false;
+                toRead.ACKnr = 0;
+            }
+                if (toRead.ACK == true) {
+                    printf("Server - FIN ACK received, disconnecting.\n");
+                    n = 4;
+                } else {
+                    printf("Server - timeout %d", n + 1);
+                    n++;
+                }
 
-            if (toRead.ACK == true)
-            {
-                printf("Server - FIN ACK received, disconnecting.\n");
-                n = 4;
-            }
-            else
-            {
-                printf("Server - timeout %d", n + 1);
-                n++;
-            }
         }
     }while(n <= 3);
 
@@ -121,17 +121,16 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                 if(FD_ISSET(*fileDescriptor, &readFdSet))
                 {
                     /* Reads the package from client */
-                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    /* If it receives the SYN it proceeds to the next state */
+                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
+                        /* If it receives the SYN it proceeds to the next state */
 
-                    if(toRead.SYN == true)
-                    {
-                        printf("Server - SYN received\n");
-                        if (toRead.length < windowSize)
-                        {
-                            windowSize = toRead.length;
+                        if (toRead.SYN == true) {
+                            printf("Server - SYN received\n");
+                            if (toRead.length < windowSize) {
+                                windowSize = toRead.length;
+                            }
+                            state = 1;
                         }
-                        state = 1;
                     }
                 }
                 break;
@@ -160,7 +159,10 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                             perror("Server - Select failure");
 
                         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-                            ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
+                            if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == -1)
+                            {
+                                ingsoc_init(&toRead);
+                            }
                             /* After sending SYN+ACK and receving the final ack from client
                              * it will proceed to the next state, which is the final state */
                             if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
@@ -232,43 +234,34 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                 if (FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads the package from client */
-                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    if (toRead.FIN == true)
-                        state = 8;
-                    else {
-                        for(i = 0; i < windowSize; i++)
-                        {
-                            if(toRead.SEQ == Window[i].SEQ && populated[i] == true)
-                            {
-                                state = 1;
+                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
+                        if (toRead.FIN == true)
+                            state = 8;
+                        else {
+                            for (i = 0; i < windowSize; i++) {
+                                if (toRead.SEQ == Window[i].SEQ && populated[i] == true) {
+                                    state = 1;
+                                }
                             }
-                        }
-                        if(state != 1)
-                        {
+                            if (state != 1) {
 
-                            if(LatestRecSeq - toRead.SEQ < 1000)
-                            {
-                                state = 1;
-                                                            }
-                            else if(toRead.SEQ - LatestRecSeq <= windowSize-NrInWindow)
-                            {
-                                state = 1;
-                                toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
-                                if(toACK >= windowSize)
-                                {
-                                    toACK -= windowSize;
+                                if (LatestRecSeq - toRead.SEQ < 1000) {
+                                    state = 1;
+                                } else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
+                                    state = 1;
+                                    toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
+                                    if (toACK >= windowSize) {
+                                        toACK -= windowSize;
+                                    }
+                                    Window[toACK] = toRead;
+                                    populated[toACK] = true;
+                                    if (toACK == PlaceInWindow) {
+                                        LatestRecSeq = toRead.SEQ;
+                                    } else {
+                                        offset++;
+                                    }
+                                    NrInWindow++;
                                 }
-                                Window[toACK] = toRead;
-                                populated[toACK] = true;
-                                if(toACK == PlaceInWindow)
-                                {
-                                    LatestRecSeq = toRead.SEQ;
-                                }
-                                else
-                                {
-                                    offset++;
-                                }
-                                NrInWindow++;
                             }
                         }
                     }

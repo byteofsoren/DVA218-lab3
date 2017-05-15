@@ -94,26 +94,26 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     }
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
                         ingsoc rAck;
-                        ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
+                        if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
+                        {
+                            if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
-                        if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
-
-                            ACK_NR = rAck.SEQ;
-                            /*int csum1 = rAck.cksum;
-                            rAck.cksum = 0;
-                            int csum = checkSum(&rAck, sizeof(rAck), 0);
-                            printf("skickad %d, räknad %d\n", csum1, csum);
-                            printf("ACK + SYN recived\n");*/
-                            windowSize = rAck.length;
-                            state = 1;
-                        } else {
-                            printf("!ACK + SYN recived\n");
-                            //exit(EXIT_FAILURE);
+                                ACK_NR = rAck.SEQ;
+                                /*int csum1 = rAck.cksum;
+                                rAck.cksum = 0;
+                                int csum = checkSum(&rAck, sizeof(rAck), 0);
+                                printf("skickad %d, räknad %d\n", csum1, csum);
+                                printf("ACK + SYN recived\n");*/
+                                windowSize = rAck.length;
+                                state = 1;
+                            } else {
+                                printf("!ACK + SYN recived\n");
+                                //exit(EXIT_FAILURE);
+                            }
+                            // Read from socket.
+                            // om ACk -> state = 1;
+                            // om ej ACK -> exit
                         }
-                        // Read from socket.
-                        // om ACk -> state = 1;
-                        // om ej ACK -> exit
-
                     } else {
                         printf("Time out counter is now %d\n", counter);
                         counter--;
@@ -182,13 +182,15 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
         if (FD_ISSET(*GSOCKET, &GFD_SET)) {
             // Reads message for server.
             ingsoc rAck;
-            ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME);
-            if (rAck.ACK == true && rAck.FIN == true) {
-                printf("Recived fin + ack");
-                sFin.ACK = true;
-                ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-                return 0;
-                // Do i need tto do any discconecting on UDP?
+            if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
+            {
+                if (rAck.ACK == true && rAck.FIN == true) {
+                    printf("Recived fin + ack");
+                    sFin.ACK = true;
+                    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+                    return 0;
+                    // Do i need tto do any discconecting on UDP?
+                }
             }
         }
         counter--;
@@ -313,15 +315,21 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                 if(FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads package from client */
-                    ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo);
-                    for (i = 0; i < windowSize; i++) {
-                        if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
-                            printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
-                            NrInWindow--;
-                            populated[i] = false;
-                            state = 0;
+                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
+                    {
+                        for (i = 0; i < windowSize; i++) {
+                            if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
+                                printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
+                                NrInWindow--;
+                                populated[i] = false;
+                                state = 0;
 
+                            }
                         }
+                    }
+                    else
+                    {
+                        state = 0;
                     }
                 }
 
