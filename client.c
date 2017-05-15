@@ -206,11 +206,12 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     ingsoc *queue = malloc(windowSize * sizeof(ingsoc));
     clock_t *sent = malloc(windowSize * sizeof(clock_t));
     int state = 0;
-    int i, nOfPack, PackToResend;
+    int i,t = 0, nOfPack, PackToResend;
     int startPos = 0;
     int endPos = startPos + windowSize;
     int running = 1;
     int PlaceInWindow = 0;      //where in the windows we are
+    int PlaceForAck = 0;
     int NrInWindow = 0;     //how many packages there is in the window
     int PlaceInMessage = 0;     //where in the string to be sent we are
     int tmpPos;
@@ -237,7 +238,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     do {
         for (i = 0; i < windowSize; i++)
         {
-            if((clock() - sent[i]) > 20000000 && populated[i] == true)
+            if((clock() - sent[i]) > 40000 && populated[i] == true && queue[i].ACK == false)
             {
                 state = 3;
                 PackToResend = i;
@@ -317,20 +318,62 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     /* Reads package from client */
                     if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
                     {
-                        for (i = 0; i < windowSize; i++) {
-                            if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
-                                printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
-                                NrInWindow--;
-                                populated[i] = false;
-                                state = 0;
+                        if(toRead.ACK == true && toRead.ACKnr == queue[PlaceForAck].SEQ)
+                        {
+                            NrInWindow--;
+                            populated[PlaceForAck] = false;
+                            PlaceForAck++;
+                            if(PlaceForAck >= windowSize)
+                            {
+                                PlaceForAck = 0;
+                            }
+                            printf("ACK recieved: %d\n", (int) toRead.ACKnr);
 
+                            while(queue[PlaceForAck].ACK == true && populated[PlaceForAck] == true)
+                            {
+                                queue[PlaceForAck].ACK = false;
+                                NrInWindow--;
+                                populated[PlaceForAck] = false;
+                                PlaceForAck++;
+                                if(PlaceForAck >= windowSize)
+                                {
+                                    PlaceForAck = 0;
+                                }
+                            }
+                            /*for (i = 0; i < windowSize; i++) {
+                                if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
+                                    printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
+                                    NrInWindow--;
+                                    populated[i] = false;
+                                    state = 0;
+
+                                }
+                            }*/
+                        }
+                        else
+                        {
+                            t = PlaceForAck + 1;
+                            if(t >= windowSize)
+                            {
+                                t = 0;
+                            }
+                            while(t != PlaceForAck)
+                            {
+                                if(toRead.ACKnr == queue[t].SEQ)
+                                {
+                                    queue[t].ACK = true;
+                                    t = PlaceForAck - 1;
+                                }
+                                t++;
+                                if(t >= windowSize)
+                                {
+                                    t = 0;
+                                }
                             }
                         }
+
                     }
-                    else
-                    {
-                        state = 0;
-                    }
+                    state = 0;
                 }
 
                 break;
