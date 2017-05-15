@@ -66,7 +66,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     bool running = 1;
     int  counter = 5;
     size_t ACK_NR = 0;
-    int windowSize = ingsoc_randomNr(2, 10);
+    int windowSize = ingsoc_randomNr(3, 20);
     ingsoc sSyn;
     //FD_ZERO(&GFD_SET);
     //FD_SET(*GSOCKET, &GFD_SET);
@@ -217,7 +217,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int NrInWindow = 0;     //how many packages there is in the window
     int PlaceInMessage = 0;     //where in the string to be sent we are
     int tmpPos;
-    char *buffer = malloc(128);
+    char *buffer = malloc(512);
     fd_set readFdSet;
     struct timeval timer;
     bool *populated = malloc(windowSize * sizeof(bool));
@@ -240,7 +240,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     do {
         for (i = 0; i < windowSize; i++)
         {
-            if((clock() - sent[i]) > 40000 && populated[i] == true && queue[i].ACK == false)
+            if((clock() - sent[i]) > 10000 && populated[i] == true && queue[i].ACK == false)
             {
                 state = 3;
                 PackToResend = i;
@@ -399,6 +399,8 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 running = 0;
                 free(buffer);
                 free(queue);
+                free(sent);
+                free(populated);
 
                 break;
         }

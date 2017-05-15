@@ -103,7 +103,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
     ingsoc toWrite, toRead;
     int state = 0;
     int running = 1;
-    int n = 0, windowSize = ingsoc_randomNr(2,10);
+    int n = 0, windowSize = ingsoc_randomNr(3,20);
     struct timeval timer;
 
 
@@ -212,10 +212,10 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     fd_set readFdSet;
     int offset = 0;
     //ingsoc window[windowSize];
-    char message[256];
+    char *message = malloc(512);
     int PlaceInMessage = 0;
-    ingsoc *Window = malloc(windowSize * 2 * sizeof(ingsoc));
-    bool *populated = malloc(windowSize* 2* sizeof(bool));
+    ingsoc *Window = malloc(windowSize * sizeof(ingsoc));
+    bool *populated = malloc(windowSize * sizeof(bool));
     for(i = 0; i < windowSize; i++)
     {
         populated[i] = false;
@@ -272,11 +272,12 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 1:
 
                 printf("Server - Package %d received, SEQnr: %d\n", startPos, (int)toRead.SEQ);
-                if (toACK == PlaceInWindow)
+                if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false)
                 {
                     message[PlaceInMessage] = Window[PlaceInWindow].data[0];
                     PlaceInMessage++;
                     populated[PlaceInWindow] = false;
+                    NrInWindow--;
                     PlaceInWindow++;
                     if(PlaceInWindow >= windowSize)
                     {
@@ -289,6 +290,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         LatestRecSeq = Window[PlaceInWindow].SEQ;
                         message[PlaceInMessage] = Window[PlaceInWindow].data[0];
                         PlaceInWindow++;
+                        NrInWindow--;
                         if(PlaceInWindow >= windowSize)
                         {
                             PlaceInWindow = 0;
@@ -298,6 +300,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     }
 
                 }
+                Window[toACK].ACK = true;
                 ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACK = true;
@@ -305,13 +308,15 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 printf("Sending ACK on %d\n", (int) toWrite.ACKnr);
                 state = 0;
-                NrInWindow--;
                 break;
             case 8:
                 message[PlaceInMessage] = '\0';
                 printf("Message was: %s\n", message);
                 printf("send fin + Ackn\n");
                 running = 0;
+                free(message);
+                free(populated);
+                free(Window);
                 break;
         }
 
