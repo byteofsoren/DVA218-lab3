@@ -1,9 +1,18 @@
 
 #include "ingsoc.h"
+#include "newspeak.h"
 
+#define CHANCE  (short) ingsoc_randomNr(0,100)
+#define MAX_JAIL 3
+#define CHANCE_TO_GET_CHKSUM_ERROR 10
+#define CHANCE_TO_GET_OUT_ORDER 10
+ingsoc jail[MAX_JAIL];
+short jailer[MAX_JAIL];
 
 void ingsoc_init(ingsoc *insoci)
 {
+    /* This function is used to initialize the ingsock structure
+     * to default values.*/
     insoci->SYN=false;
     insoci->clientID = getpid();
     insoci->FIN=false;
@@ -37,7 +46,7 @@ size_t convert_size_t(char *buffer, size_t pos, size_t data){
 }
 
 size_t convert_short(char *buffer, size_t pos, unsigned short data){
-    /* Doe's the same ass the convert_sicze_t but for the 
+    /* Doe's the same ass the convert_sicze_t but for the
      * data type unsigned short */
     int length = sizeof(short);
     char temp[length];
@@ -115,10 +124,10 @@ ingsoc *fromSerial(char *buffer){
     pack->FIN = (buffer[1] == 't') ? true:false;
     pack->RES = (buffer[2] == 't') ? true:false;
     pack->SYN = (buffer[3] == 't') ? true:false;
-    /* To understand how that syntax works please read 
+    /* To understand how that syntax works please read
      * the toSerial function abode */
     size_t counter = 4;
-    /* The counter above keaps the place in the data. The functions below reads
+    /* The counter above keeps the place in the data. The functions below reads
      * the data form the buffer and assign them tho the right field in the
      * structure, notice that the order in this function is the same as
      * toSerial function */
@@ -132,11 +141,16 @@ ingsoc *fromSerial(char *buffer){
 }
 
 short ingsoc_cksum(char *buffer, int length){
-    short csum = 0;
+    /* Calculates the check sum by adding up the values that is defined by char */
+    short tsum = 0;
+    /* First we define a tsum variable that is used as a total summary
+     * In the for loop below we iterate each char in the buffer and
+     * take the value in that char + the tsum of previously summary */
     for (int i = 0; i < length; ++i) {
-        csum += buffer[i];
+        tsum += buffer[i];
     }
-    return csum;
+    /* We return the total value of the buffer */
+    return tsum;
 }
 u_int CheckSumConf(void *cnf)
 {
@@ -172,12 +186,20 @@ size_t ingsoc_randomNr(size_t min, size_t max){
 
 void ingsoc_seqnr(ingsoc *in)
 {
+    /* Creating a sequence number for the sliding window is done by
+     * at first randomly beginning on a random number, then after
+     * we randomly created a number we increase the number by 1 for every
+     * package that is going to be sent*/
     static size_t startNr=0;
+    /* This is done by using a static variable that is initialized to 0
+     * the fist time the function is started.*/
     if(startNr == 0){
         startNr = ingsoc_randomNr(10,2000000000);
     }else{
+        /* After that we increase the value by 1 each time the function runs */
         startNr++;
     }
+    /* We sett the number to the structure before exiting the function */
     in->SEQ = startNr;
 
 
@@ -211,7 +233,8 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     dataRead = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
     if(dataRead < 0){
         perror("readMessage - Could not READ data");
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
+        return -1;
     }
     sentChSum = data->cksum;
     data->cksum = 0;
@@ -237,38 +260,77 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
  * denoted by fileDescriptor.
  */
 
-bool errorGenerator(int *fileDescriptor, ingsoc* data, struct sockaddr_in *host_info, struct sockaddr_in *host_info_cpy){
-    short CHANCE_TO_GET_CHKSUM_ERROR = 0;
-    short CHANCE_TO_GET_BAD_FD = 0;
-    short CHANCE_TO_GET_WRONG_HOST_INFO = 0;
-    printf("errorGenerator \e[032mStart\e[0m\n");
-    int chkerror = ingsoc_randomNr(0,100);
-    bool ret = false;
-    char errFormat[] = "\e[1;31m";
-    if(chkerror < CHANCE_TO_GET_CHKSUM_ERROR){
-        printf("%sChec sum error\e[0m\n", errFormat);
-        data->cksum  = 6543;
-    }
-    chkerror = ingsoc_randomNr(0,100);
-    if(chkerror < CHANCE_TO_GET_BAD_FD)
-    {
-        printf("%sChange fileDescriptor\e[0m\n", errFormat);
-        //*fileDescriptor = 10;
-    }
-    chkerror = ingsoc_randomNr(0,100);
-    if(chkerror < CHANCE_TO_GET_WRONG_HOST_INFO){
-        printf("%sCreate error host_info\e[0m\n",errFormat);
-        host_info_cpy = host_info;
-        host_info_cpy->sin_port = 543;
-        ret = true;
-    }
-    printf("errorGenerator \e[033mEND\e[0m\n");
+short _numberInJail(){
+    /* Returns the number of packages in jail */
+    short total = 0;
+    while(jailer[total] == 1 & total <= MAX_JAIL){ total++; } // Loops the jail to coutnt jailed item
+    return total;
+}
 
+
+bool _sendToJail(ingsoc *in){
+    /* Sends a pacage to jail */
+    int i = 0;
+    while(jailer[i] == 1 & i <= MAX_JAIL){ i++; } // Finds a empty spot in jail
+    if(i <= MAX_JAIL){
+        jail[i] = *in;
+        jailer[i] = 1;
+        return true;
+    }
+    return false; //NO jail space left
+}
+ingsoc *_getFromJail_byID(int id){
+    jailer[id] = 0;
+    return &jail[id];
+}
+ingsoc *_getFirstFromJail(){
+    int i = 0;
+    while(jailer[i] == 1 & i <= MAX_JAIL){ i++; } // Finds a empty spot in jail
+    return _getFromJail_byID(i);
+}
+
+short errorGenerator( ingsoc* data ){
+
+
+    printf("errorGenerator \e[032mStart\e[0m\n");
+    short ret = 0;
+    static short state = 0;
+    char errFormat[] = "\e[1;31m";
+    /* Uses a static state machine to store the sate betwen runs */
+    if(state == 0){
+        if(CHANCE < CHANCE_TO_GET_CHKSUM_ERROR){
+            printf("%sChec sum error\e[0m\n", errFormat);
+            data->cksum  = 6543;
+            ret += 1;
+        }
+        /* Generate out of order
+        * Its posible to randomly both send data to jail and check out data form
+        * jail. To do that we use a an array of sort to mimic select  */
+        if (CHANCE < CHANCE_TO_GET_OUT_ORDER){
+            /* Retain package to jail*/
+            if(_sendToJail(data)) printf("sended a ingsoc struct %sto\e[0m jail", errFormat);
+            else printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
+            ret += 2;
+        }
+        if(CHANCE < 40){
+            // Return a pacage from jail to sender
+            if(_numberInJail() > 0) ret+=4;
+            state = 1;
+        }
+    } else if( state == 1){
+        /* Pacage breakes out of jail and is sended */
+        data = _getFirstFromJail();
+        state = 0;
+    }
+
+    printf("errorGenerator \e[033mEND\e[0m\n");
     return ret;
 }
 
 void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info) {
-
+    /* Ingsoc writeMessage is the function writes the data in the insoc
+     * structure to the socket but first we calculate the check sum for the
+     * gackage, that is done in the ingsoc cksum function */
     int nOfBytes;
     size_t buffer_size = sizeof(ingsoc) + 10;
     char buff[buffer_size];
@@ -276,23 +338,32 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     memset(buffer, 0, buffer_size);
     data->cksum = 0;
     toSerial(data,buffer);
-
     data->cksum = ingsoc_cksum(buffer, buffer_size);
-    struct sockaddr_in *host_info_cpy;
-    host_info_cpy = (struct sockaddr_in*) calloc(1, sizeof(struct sockaddr_in));
-    bool err = false;
-    err = errorGenerator(&fileDescriptor, data, host_info, host_info_cpy);
-    if (err){
-        nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info_cpy,sizeof(*host_info));
-    } else {
+    /* All got so far */
+    short err = 0;
+
+    /* Error generator tho simulate error */
+
+    err = errorGenerator(data);
+    if( err == 4 | err == 2+4 | err == 1+2+4){
+        /* Breakes a old data out of jail */
+        ingsoc outofjail;
+        errorGenerator(&outofjail);
+        printf("Breaking out of jail\n");
+        newspeak(&outofjail);
+        nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
+    }
+    if( err == 2 | err == 1+2 | err == 2+4){
+        printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
+    }else{
+        newspeak(data);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
 
     if(nOfBytes < 0){
-        perror("writeMessage - Could not WRITE data\n");
-        exit(EXIT_FAILURE);
+        perror("writeMessage - Could \e[031mnot\e[0m WRITE data to socket\n");
+        //exit(EXIT_FAILURE);
     }
-    free(host_info_cpy);
 }
 /* XOR Checksum calculator
  * input:
