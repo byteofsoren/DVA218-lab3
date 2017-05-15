@@ -64,7 +64,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     short state = 0;
     fd_set GFD_SET;
     bool running = 1;
-    int i = 0, counter = 5;
+    int  counter = 5;
     size_t ACK_NR = 0;
     int windowSize = ingsoc_randomNr(2, 10);
     ingsoc sSyn;
@@ -94,6 +94,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     }
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
                         ingsoc rAck;
+
                         if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
                         {
                             if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
@@ -113,6 +114,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                             // Read from socket.
                             // om ACk -> state = 1;
                             // om ej ACK -> exit
+
                         }
                     } else {
                         printf("Time out counter is now %d\n", counter);
@@ -129,7 +131,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
-                printf("Sendeing ACK_NR to server\n");
+                printf("Sending ACK_NR to server\n");
                 ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), SERVER_NAME);
                 struct timeval timer;
                 timer.tv_sec = 5;
@@ -145,7 +147,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     ingsoc rACK;
                     ingsoc_readMessage(*GSOCKET, &rACK, SERVER_NAME);
                     if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
-                        printf("Recived ACK + SYN in final state\n");
+                        printf("Received ACK + SYN in final state\n");
                     }
                 }else{
                     // time out exits the loop
@@ -157,14 +159,14 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
             }
         }
     }
-    printf("--- END ---\n\tEnded 3 way handsaheke function\n");
+    printf("--- END ---\n\tEnded 3 way handshake function\n");
     return windowSize;
 }
 
 int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_NAME)
 {
     /* This is the disconnect function */
-    printf("Initing a client client_dis_connect\n");
+    printf("Starting client client_dis_connect\n");
     int counter = 3;
     ingsoc sFin;
     ingsoc_init(&sFin);
