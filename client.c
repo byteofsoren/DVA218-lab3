@@ -73,9 +73,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     while (running) {
         switch (state) {
             case 0:
-
-                //send syn
-
+                /* Starting the 3 way handshake */
                 ingsoc_init(&sSyn);
                 sSyn.SYN = true;
                 sSyn.length = windowSize;
@@ -95,7 +93,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
                         ingsoc rAck;
 
-                        if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
+                        if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0)
                         {
                             if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
@@ -184,7 +182,7 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
         if (FD_ISSET(*GSOCKET, &GFD_SET)) {
             // Reads message for server.
             ingsoc rAck;
-            if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0);
+            if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0)
             {
                 if (rAck.ACK == true && rAck.FIN == true) {
                     printf("Recived fin + ack");
@@ -204,19 +202,19 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
 }
 void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
 
-    ingsoc toWrite, toRead, window[windowSize];
+    ingsoc toWrite, toRead;//window[windowSize];
     ingsoc *queue = malloc(windowSize * sizeof(ingsoc));
     clock_t *sent = malloc(windowSize * sizeof(clock_t));
     int state = 0;
     int i,t = 0, nOfPack, PackToResend;
-    int startPos = 0;
-    int endPos = startPos + windowSize;
+    //int startPos = 0;
+    //int endPos = startPos + windowSize;
     int running = 1;
     int PlaceInWindow = 0;      //where in the windows we are
     int PlaceForAck = 0;
     int NrInWindow = 0;     //how many packages there is in the window
     int PlaceInMessage = 0;     //where in the string to be sent we are
-    int tmpPos;
+    //int tmpPos;
     char *buffer = malloc(512);
     fd_set readFdSet;
     struct timeval timer;
