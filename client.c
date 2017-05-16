@@ -81,9 +81,9 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 ingsoc_seqnr(&sSyn);
 
 
-                ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), SERVER_NAME);
                 while(counter > 0 && state == 0) {
                     struct timeval timer;
+                    ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), SERVER_NAME);
                     timer.tv_sec = 1;
                     GFD_SET = *ActiveFdSet;
                     int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
@@ -115,8 +115,9 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
 
                         }
                     } else {
-                        printf("Time out counter is now %d\n", counter);
+                        printf("\n------------------\nTime out counter is now \e[38;5;162m%d\e[0m\n", counter);
                         counter--;
+                        state = 0;
                         if (counter == 0) exit(EXIT_FAILURE);
                     }
                 }
