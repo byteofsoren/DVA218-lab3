@@ -209,11 +209,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     clock_t *sent = malloc(windowSize * sizeof(clock_t));
     int state = 0;
     int i,t = 0, nOfPack, PackToResend;
-    int startPos = 0;
-    int endPos = startPos + windowSize;
     int running = 1;
     int PlaceInWindow = 0;      //where in the windows we are
     int PlaceForAck = 0;
+    int length = 0;
     int NrInWindow = 0;     //how many packages there is in the window
     int PlaceInMessage = 0;     //where in the string to be sent we are
     int tmpPos;
@@ -228,7 +227,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
     printf("Client - Message to send: \n");
     input(buffer);
-    nOfPack = (int)strlen(buffer);
+    length = (int)strlen(buffer);
 
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
@@ -268,16 +267,24 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     {
                         state = 4;
                     }
-                    toWrite.data[0] = buffer[PlaceInMessage];
-                    toWrite.data[1] = '\0';
-                    PlaceInMessage++;
-                    ingsoc_seqnr(&toWrite);
-                    //queue[i] = toWrite;
-                    queue[PlaceInWindow] = toWrite;
-                    sent[PlaceInWindow] = clock();
-                    populated[PlaceInWindow] = true;
-                    NrInWindow++;
+                    else {
+                        if (length - PlaceInMessage < 3) {
+                            toWrite.length = (length - PlaceInMessage);
+                        } else {
+                            toWrite.length = ingsoc_randomNr(1, 3);
+                        }
+                        for (i = 0; i < toWrite.length; i++) {
+                            toWrite.data[i] = buffer[PlaceInMessage];
+                            PlaceInMessage++;
+                        }
 
+                        toWrite.data[toWrite.length] = '\0';
+                        ingsoc_seqnr(&toWrite);
+                        queue[PlaceInWindow] = toWrite;
+                        sent[PlaceInWindow] = clock();
+                        populated[PlaceInWindow] = true;
+                        NrInWindow++;
+                    }
                 }
                 else {
                     timer.tv_usec = 100;
@@ -342,15 +349,6 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                                     PlaceForAck = 0;
                                 }
                             }
-                            /*for (i = 0; i < windowSize; i++) {
-                                if (toRead.ACK == true && toRead.ACKnr == (queue[i]).SEQ && populated[i] == true) {
-                                    printf("Client - ACK %d received, SEQ nr: %d\n", startPos, (int) toWrite.SEQ);
-                                    NrInWindow--;
-                                    populated[i] = false;
-                                    state = 0;
-
-                                }
-                            }*/
                         }
                         else
                         {
@@ -373,11 +371,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                                 }
                             }
                         }
-
                     }
                     state = 0;
                 }
-
                 break;
 
 
@@ -387,8 +383,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 printf("Client - Package %d resent , SEQ nr: %d\n", PackToResend, (int) (queue[PackToResend]).SEQ);
                 sent[PackToResend] = clock();
                 state = 0;
-
                 break;
+
+
             case 4:
 
                 printf("Client - No more packages to send");
@@ -401,8 +398,8 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 free(queue);
                 free(sent);
                 free(populated);
-
                 break;
+
         }
     } while(running == 1);
 }

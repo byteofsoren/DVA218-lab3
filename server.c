@@ -77,7 +77,8 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
             perror("Server - Select failure");
 
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == -1) {
+            if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == -1)
+            {
                 toRead.ACK = false;
                 toRead.ACKnr = 0;
             }
@@ -121,7 +122,8 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                 if(FD_ISSET(*fileDescriptor, &readFdSet))
                 {
                     /* Reads the package from client */
-                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
+                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
+                    {
                         /* If it receives the SYN it proceeds to the next state */
 
                         if (toRead.SYN == true) {
@@ -234,7 +236,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                 if (FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads the package from client */
-                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
+                    if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
+                    {
                         if (toRead.FIN == true)
                             state = 8;
                         else {
@@ -274,8 +277,11 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 printf("Server - Package %d received, SEQnr: %d\n", startPos, (int)toRead.SEQ);
                 if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false)
                 {
-                    message[PlaceInMessage] = Window[PlaceInWindow].data[0];
-                    PlaceInMessage++;
+                    for(i = 0; i < Window[PlaceInWindow].length; i++)
+                    {
+                        message[PlaceInMessage] = Window[PlaceInWindow].data[i];
+                        PlaceInMessage++;
+                    }
                     populated[PlaceInWindow] = false;
                     NrInWindow--;
                     PlaceInWindow++;
@@ -288,14 +294,17 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     {
                         populated[PlaceInWindow] = false;
                         LatestRecSeq = Window[PlaceInWindow].SEQ;
-                        message[PlaceInMessage] = Window[PlaceInWindow].data[0];
+                        for(i = 0; i < Window[PlaceInWindow].length; i++)
+                        {
+                            message[PlaceInMessage] = Window[PlaceInWindow].data[i];
+                            PlaceInMessage++;
+                        }
                         PlaceInWindow++;
                         NrInWindow--;
                         if(PlaceInWindow >= windowSize)
                         {
                             PlaceInWindow = 0;
                         }
-                        PlaceInMessage++;
                         offset--;
                     }
 
