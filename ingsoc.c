@@ -271,7 +271,7 @@ short _numberInJail(){
 bool _sendToJail(ingsoc *in){
     /* Sends a pacage to jail */
     int i = 0;
-    printf("package with SEQ \e[38;5;205m%ld\e[0m was sent to jail\n", in->SEQ);
+    printf("SEQ \e[38;5;205m%ld\e[0m to jail\n", in->SEQ);
     while(jailer[i] == 1 & i <= MAX_JAIL){ i++; } // Finds a empty spot in jail
     if(i <= MAX_JAIL){
         jail[i] = *in;
@@ -282,7 +282,7 @@ bool _sendToJail(ingsoc *in){
 }
 ingsoc *_getFromJail_byID(int id){
 
-    printf("package with SEQ \e[38;5;40m%ld\e[0m was broken out of jail\n", jail[id].SEQ);
+    printf("SEQ \e[38;5;40m%ld\e[0m out of jail\n", jail[id].SEQ);
     jailer[id] = 0;
     return &jail[id];
 }
