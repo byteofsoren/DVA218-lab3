@@ -85,6 +85,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                     struct timeval timer;
                     ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), SERVER_NAME);
                     timer.tv_sec = 1;
+                    timer.tv_usec = 0;
                     GFD_SET = *ActiveFdSet;
                     int t = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
                     if (t == -1) {
@@ -98,11 +99,6 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                             if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
 
                                 ACK_NR = rAck.SEQ;
-                                /*int csum1 = rAck.cksum;
-                                rAck.cksum = 0;
-                                int csum = checkSum(&rAck, sizeof(rAck), 0);
-                                printf("skickad %d, räknad %d\n", csum1, csum);
-                                printf("ACK + SYN recived\n");*/
                                 windowSize = rAck.length;
                                 state = 1;
                             } else {
