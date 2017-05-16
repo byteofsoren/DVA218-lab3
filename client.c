@@ -3,7 +3,7 @@
 #define PORT 5555
 #define hostNameLength 50
 #define messageLength  256
-#define MAXMSG 512
+#define MAXMSG 1024
 
 char HWclient_connect[200] = "wlp1s0";
 
@@ -215,7 +215,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int NrInWindow = 0;     //how many packages there is in the window
     int PlaceInMessage = 0;     //where in the string to be sent we are
     //int tmpPos;
-    char *buffer = malloc(512);
+    char *buffer = malloc(1024);
     fd_set readFdSet;
     struct timeval timer;
     bool *populated = malloc(windowSize * sizeof(bool));
