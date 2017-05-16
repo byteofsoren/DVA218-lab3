@@ -281,6 +281,8 @@ bool _sendToJail(ingsoc *in){
     return false; //NO jail space left
 }
 ingsoc *_getFromJail_byID(int id){
+
+    printf("package with SEQ \e[38;5;40m%ld\e[0m was broken out of jail\n", jail[id].SEQ);
     jailer[id] = 0;
     return &jail[id];
 }
