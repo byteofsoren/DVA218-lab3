@@ -82,15 +82,18 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
                 toRead.ACK = false;
                 toRead.ACKnr = 0;
             }
-                if (toRead.ACK == true) {
-                    printf("Server - FIN ACK received, disconnecting.\n");
-                    n = 4;
-                } else {
-                    printf("Server - timeout %d", n + 1);
-                    n++;
-                }
+            if (toRead.ACK == true) {
+                printf("Server - FIN ACK received, disconnecting.\n");
+                n = 4;
+            } else {
 
+                printf("Server - timeout %d", n + 1);
+            }
         }
+        else {
+            n++;
+        }
+
     }while(n <= 3);
 
     return 0;

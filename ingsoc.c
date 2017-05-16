@@ -293,7 +293,7 @@ ingsoc *_getFirstFromJail(){
 short errorGenerator( ingsoc* data ){
 
 
-    printf("errorGenerator \e[032mStart\e[0m\n");
+    //printf("errorGenerator \e[032mStart\e[0m\n");
     short ret = 0;
     static short state = 0;
     char errFormat[] = "\e[1;31m";
@@ -324,7 +324,7 @@ short errorGenerator( ingsoc* data ){
         state = 0;
     }
 
-    printf("errorGenerator \e[033mEND\e[0m\n");
+    //printf("errorGenerator \e[033mEND\e[0m\n");
     return ret;
 }
 
