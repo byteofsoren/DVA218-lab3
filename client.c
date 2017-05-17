@@ -162,11 +162,12 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     return windowSize;
 }
 
-int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_NAME)
+int client_dis_connect(int *GSOCKET, fd_set *ActiveFdSet, struct sockaddr_in *SERVER_NAME)
 {
     /* This is the disconnect function */
     printf("Starting client client_dis_connect\n");
     int counter = 3;
+    fd_set GFD_SET = *ActiveFdSet;
     ingsoc sFin;
     ingsoc rAck;
     ingsoc_init(&sFin);
@@ -177,10 +178,10 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
         ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
         printf("Sent fin with SEQ: %d\n", (int)sFin.SEQ);
         struct timeval timer;
-        timer.tv_sec = 10;
+        timer.tv_sec = 5;
         timer.tv_usec = 0;
         printf("Waiting for fin + ack\n");
-
+        GFD_SET = *ActiveFdSet;
         int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
         if (stemp == -1) perror("select");
         if (FD_ISSET(*GSOCKET, &GFD_SET))
@@ -197,7 +198,15 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
                     ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
                     return 0;
                 }
+                else
+                {
+                    printf("No FIN + ACK revived\n");
+                }
             }
+        }
+        else
+        {
+            printf("Timeout\n");
         }
         counter--;
     }
@@ -411,5 +420,5 @@ void client_main(char *addres)
     windowSize = client_connect(&GSOCKET, &GFD_SET, addres, &SERVER_NAME);
     SWSend(&GSOCKET, &GFD_SET, &SERVER_NAME, windowSize);
     printf("--Initing client_dis_connect---\n");
-    client_dis_connect(&GSOCKET, GFD_SET, &SERVER_NAME);
+    client_dis_connect(&GSOCKET, &GFD_SET, &SERVER_NAME);
 }
