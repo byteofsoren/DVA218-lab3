@@ -88,7 +88,7 @@ int toSerial(ingsoc *package, char *out){
     counter = convert_short(buffer,  counter, package->cksum);
     counter = convert_short(buffer, counter, package->length);
     /* Bitwise copy of the data in the struct to the buffer array*/
-    memcpy(buffer + counter, package->data, 255);
+    memcpy(buffer + counter, package->data, MAX_DATA);
     /* Then we copy the buffer out of stack back to the out inter */
     memcpy(out, buffer, bytes);
     return bytes;
@@ -210,7 +210,7 @@ void input(char* msg)		//my input function from user
 {
     char dummy;
 
-    fgets(msg, 1024, stdin);
+    fgets(msg, MAXMSG, stdin);
 
     if (*(msg + (strlen(msg) - 1)) == '\n')		//if the last char is \n. Changes it to \0
     {
@@ -230,7 +230,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     /* ingsoc_readMesssage is used to read data form sockets back to who ever
      * function that called it form the beginning. The data pointer in
      * the argument section is used as an output, The return value form this
-     * function is number of bytes read or -1 for no package received. */
+     * function is zero for success or -1 for no package received. */
 
     unsigned nOfBytes = sizeof(*host_info);
     int dataRead = 0, sentChSum = 0;
@@ -251,7 +251,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     sentChSum = data->cksum;
     data->cksum = 0;
     /* First we stored the checksum from the received data struct and then we
-     * set it to zero because we want to recalculate the checksum. 
+     * set it to zero because we want to recalculate the checksum.
      * Now we are going to initialize a buffer that is going to
      * be used in the serialisation */
     size_t buffer_size = sizeof(ingsoc) + 10;
@@ -272,24 +272,24 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     }
     return dataRead;
 }
-/* writeMessage
- * Writes the string message to the file (socket)
- * denoted by fileDescriptor.
- */
 
 short _numberInJail(){
-    /* Returns the number of packages in jail */
+    /* Returns the number of packages in jail
+     * by utilizing a loop */
     short total = 0;
-    while((jailer[total] == 1) & (total <= MAX_JAIL)){ total++; } // Loops the jail to coutnt jailed item
+    while((jailer[total] == 1) & (total <= MAX_JAIL)){ total++; } // Loops the jail to count jailed item
     return total;
 }
 
 
 bool _sendToJail(ingsoc *in){
-    /* Sends a pacage to jail */
+    /* Sends a package to jail
+     * Id does that by checking for empty space in the jailer global
+     * returns true if the package was successfully stored in jail ore
+     * false if unsuccessful */
     int i = 0;
     printf("SEQ \e[38;5;205m%ld\e[0m to jail\n", in->SEQ);
-    while(jailer[i] == 1 & i <= MAX_JAIL){ i++; } // Finds a empty spot in jail
+    while((jailer[i] == 1) & (i <= MAX_JAIL)){ i++; } // Finds a empty spot in jail
     if(i <= MAX_JAIL){
         jail[i] = *in;
         jailer[i] = 1;
@@ -299,21 +299,24 @@ bool _sendToJail(ingsoc *in){
     return false; //NO jail space left
 }
 ingsoc *_getFromJail_byID(int id){
-        printf("SEQ \e[38;5;40m%ld\e[0m out of jail\n", jail[id].SEQ);
-        jailer[id] = 0;
-        number_of_inmates--;
-        return &jail[id];
+    /* Get form jail by id is a function mostly used by get first from jail
+     * function. The function works by returning the strut stored in the jail
+     * array. Also sets the jail place to 0 */
+    printf("SEQ \e[38;5;40m%ld\e[0m out of jail\n", jail[id].SEQ);
+    jailer[id] = 0;
+    number_of_inmates--;
+    return &jail[id];
 }
-ingsoc *_getFirstFromJail(){
+ingsoc *_returnFromJail(){
+    /* Returns a random package form jail */
     int i =0;
     int loop_counter = 0;
     do{
         i = ingsoc_randomNr(0,MAX_JAIL);
-        printf("getformjail loop_counter=%d i=%d number_of_inmates=%d\n", loop_counter, i, number_of_inmates);
+        //printf("getformjail loop_counter=%d i=%d number_of_inmates=%d\n", loop_counter, i, number_of_inmates);
         loop_counter++;
-        //if(i > MAX_JAIL - 1) i = 0;
         if(loop_counter > 60) {
-            printf("\e[38;5;13mFul lösning på problemet\n\e[0m\n");
+            printf("\e[38;5;13mUgly solution to the infinity loop problem\n\e[0m\n");
             break;
         }
     } while(jailer[i] == 0);
@@ -321,22 +324,25 @@ ingsoc *_getFirstFromJail(){
 }
 
 short errorGenerator( ingsoc* data ){
-
+    /* error generator generates error in the communication 
+     * The generator uses chance to generate a certain type of error.
+     * The chance to get certain type of error is stored in a couple of defines
+     * in the top of the code */
 
     //printf("errorGenerator \e[032mStart\e[0m\n");
     short ret = 0;
     static short state = 0;
-    char errFormat[] = "\e[1;31m";
-    /* Uses a static state machine to store the sate betwen runs */
+    char errFormat[] = "\e[1;31m"; // Placeholder for color text
+    /* Uses a static state machine to store the sate between runs */
     if(state == 0){
         if(CHANCE < CHANCE_TO_GET_CHKSUM_ERROR){
-            printf("%sChec sum error\e[0m\n", errFormat);
+            printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
             data->cksum  = 6543;
             ret += 1;
         }
         /* Generate out of order
-        * Its posible to randomly both send data to jail and check out data form
-        * jail. To do that we use a an array of sort to mimic select  */
+        * Its possible randomly both send data to jail and check out data form
+        * jail. To do that we use an array of sort to mimic select  */
         if (CHANCE < CHANCE_TO_GET_OUT_ORDER){
             /* Retain package to jail*/
             _sendToJail(data);
@@ -345,13 +351,13 @@ short errorGenerator( ingsoc* data ){
             ret += 2;
         }
         if(CHANCE < 40){
-            // Return a pacage from jail to sender
+            /* Return a package from jail to sender and set state 1 */
             if(_numberInJail() > 0) ret+=4;
             state = 1;
         }
     } else if( state == 1){
-        /* Pacage breakes out of jail and is sended */
-        if(number_of_inmates > 0) data = _getFirstFromJail();
+        /* Package breaks out of jail and is send ed */
+        if(number_of_inmates > 0) data = _returnFromJail();
         state = 0;
     }
 
@@ -377,7 +383,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     /* Error generator tho simulate error */
 
     err = errorGenerator(data);
-    if( err == 4 | err == 2+4 | err == 1+2+4){
+    if( (err == 4) | (err == 2+4) | (err == 1+2+4)){
         /* Breakes a old data out of jail */
         ingsoc outofjail;
         errorGenerator(&outofjail);
@@ -385,9 +391,9 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         newspeak(&outofjail);
         nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
-    if( err == 2 | err == 1+2 | err == 2+4){
+    if( (err == 2) | (err == 1+2) | (err == 2+4)){
         //printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
-        printf(".\s");
+        printf(".\n");
     }else{
         newspeak(data);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));

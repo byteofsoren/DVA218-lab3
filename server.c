@@ -1,7 +1,7 @@
 #include "ingsoc.h"
 
 #define PORT 5555
-#define MAXMSG 1024
+
 size_t LatestRecSeq;
 int make_Socket6(unsigned short int port) {
     int sock;
@@ -146,7 +146,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                     if (ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
                         /* If it receives the SYN from client it proceeds to the next state */
                         if (toRead.SYN == true) {
-                            printf("Server - SYN received\n");
+                            printf("Server - SYN received on %d\n", (int)toRead.SEQ);
                             /* Deciding on what windowSize to use */
                             if (toRead.length < windowSize) {
                                 windowSize = toRead.length;
@@ -170,10 +170,10 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                 do {
                     /* Sends the package to client */
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                    printf("Server - ACK + SYN sent\n");
+                    printf("Server - ACK + SYN sent on %d with SEQ: %d\n",(int)toWrite.ACKnr, (int)toWrite.SEQ);
                     /* set timer to tell select for how long to look for a change before calling a timeout */
-                    timer.tv_sec = 20;
-                    timer.tv_usec = 5000;
+                    timer.tv_sec = 1;
+                    timer.tv_usec = 0;
                     readFdSet = *activeFdSet;
                     /* Looks for changes in FD */
                     if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
@@ -189,7 +189,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                         /* After sending SYN+ACK and receiving the final ack from client
                          * it will proceed to the next state, which is the final state */
                         if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                            printf("Server - final ACK received\n");
+                            printf("Server - final ACK received for %d\n", (int) toRead.SEQ);
                             state = 2;
                         }
 
@@ -220,8 +220,9 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
     } while (running == 1);
     return windowSize;
 }
-void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
-
+void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize)
+{
+    size_t StartSEQ = LatestRecSeq + 1;
     ingsoc toWrite, toRead;
     int state = 0;
     size_t toACK = 0;
@@ -234,7 +235,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     fd_set readFdSet;
     int offset = 0;
     //ingsoc window[windowSize];
-    char *message = malloc(1024);
+    char *message = malloc(MAXMSG);
+    memset(message, '\0', MAXMSG);
     int PlaceInMessage = 0;
     ingsoc *Window = malloc(windowSize * sizeof(ingsoc));
     bool *populated = malloc(windowSize * sizeof(bool));
@@ -291,7 +293,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 1:
 
-                printf("Server - Package %ld received, SEQnr: %d\n", startPos, (int) toRead.SEQ);
+                printf("Server - Package %ld received, SEQnr: %d\n", (toRead.SEQ - StartSEQ), (int) toRead.SEQ);
                 if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false) {
                     for (i = 0; i < Window[PlaceInWindow].length; i++) {
                         message[PlaceInMessage] = Window[PlaceInWindow].data[i];
@@ -333,6 +335,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 8:
                 message[PlaceInMessage] = '\0';
                 /* Writes out message with green text \e[032m */
+                printf("FIN received with SEQ: %d\n", (int)toRead.SEQ);
                 printf("--Message was--\n[\e[032m%s \e[0m]\n", message);
                 running = 0;
                 free(message);
@@ -365,7 +368,7 @@ void Server_Main(int arg){
     printf("\n[waiting for connections...]\n");
 
     windowSize = Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
-    printf("Window size if %d\n", windowSize);
+    printf("Window size is %d\n", windowSize);
     SWRecv(&fileDescriptor, &activeFdSet, &hostInfo, windowSize);
     server_disconnect(&fileDescriptor, &activeFdSet, &hostInfo);
 
