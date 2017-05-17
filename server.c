@@ -68,8 +68,6 @@ void server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr
 
 
     do {
-
-
         ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
         printf("Server - FIN+ACK sent to client with SEQ: %d Answer to: %d\n", (int) toWrite.SEQ, (int) toWrite.ACKnr);
 
@@ -188,7 +186,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                         /* After 3 failed attempts we will go back to the idle state */
                         else
                         {
-                            printf("Server - ACK not received, attempt: %d", n + 1);
+                            printf("Server - ACK not received, attempt: %d\n", n + 1);
                             n++;
                         }
                     }
@@ -299,6 +297,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         PlaceInMessage++;
                     }
                     populated[PlaceInWindow] = false;
+                    LatestRecSeq = Window[PlaceInWindow].SEQ;
                     NrInWindow--;
                     PlaceInWindow++;
                     if((int) PlaceInWindow >= windowSize)
