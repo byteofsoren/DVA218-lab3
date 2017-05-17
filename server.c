@@ -1,7 +1,7 @@
 #include "ingsoc.h"
 
 #define PORT 5555
-#define MAXMSG 512
+#define MAXMSG 1024
 size_t LatestRecSeq;
 int make_Socket6(unsigned short int port) {
     int sock;
@@ -51,7 +51,7 @@ int make_Socket4(unsigned short int port) {
 }
 /* server_disconnect - This function is initialized when the server receives a FIN (disconnect request)
  * from the client*/
-int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo)
+void server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo)
 {
 
     ingsoc toRead, toWrite;
@@ -61,39 +61,37 @@ int server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_
 
     ingsoc_init(&toRead);
     ingsoc_init(&toWrite);
-
+    ingsoc_seqnr(&toWrite);
     toWrite.ACK = true;
     toWrite.FIN = true;
+    toWrite.ACKnr = LatestRecSeq;
 
 
     do {
-        readFdSet = *activeFdSet;
+
 
         ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-        printf("Server - FIN+ACK sent to client\n");
+        printf("Server - FIN+ACK sent to client with SEQ: %d Answer to: %d\n", (int) toWrite.SEQ, (int) toWrite.ACKnr);
 
-        timer.tv_sec = 5;
+        timer.tv_sec = 3;
+        timer.tv_usec = 0;
+        readFdSet = *activeFdSet;
         if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
             perror("Server - Select failure");
 
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-            if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == -1)
-            {
-                toRead.ACK = false;
-                toRead.ACKnr = 0;
-            }
-                if (toRead.ACK == true) {
-                    printf("Server - FIN ACK received, disconnecting.\n");
+            if (ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
+                if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
+                    printf("Server - ACK received (%d), disconnecting.\n", (int) toRead.SEQ);
                     n = 4;
-                } else {
-                    printf("Server - timeout %d", n + 1);
-                    n++;
                 }
-
+            }
         }
-    }while(n <= 3);
-
-    return 0;
+        else {
+            n++;
+            printf("Server - timeout %d\n", n + 1);
+        }
+    }while (n <= 3);
 }
 /* Threeway - This is the server part of the threeway handshake
  * Inputs:
@@ -229,7 +227,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     fd_set readFdSet;
     int offset = 0;
     //ingsoc window[windowSize];
-    char *message = malloc(512);
+    char *message = malloc(1024);
     int PlaceInMessage = 0;
     ingsoc *Window = malloc(windowSize * sizeof(ingsoc));
     bool *populated = malloc(windowSize * sizeof(bool));
@@ -254,8 +252,11 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
                     {
                         if (toRead.FIN == true)
+                        {
                             state = 8;
-                        else {
+                        }
+                        else
+                        {
                             for (i = 0; i < windowSize; i++) {
                                 if (toRead.SEQ == Window[i].SEQ && populated[i] == true) {
                                     state = 1;
@@ -337,11 +338,11 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 message[PlaceInMessage] = '\0';
                 /* Writes out message with green text \e[032m */
                 printf("--Message was--\n[\e[032m%s \e[0m]\n", message);
-                printf("send fin + Ackn\n");
                 running = 0;
                 free(message);
                 free(populated);
                 free(Window);
+                LatestRecSeq = toRead.SEQ;
                 break;
         }
 
