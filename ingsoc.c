@@ -8,6 +8,7 @@
 #define CHANCE_TO_GET_OUT_ORDER 10
 ingsoc jail[MAX_JAIL];
 short jailer[MAX_JAIL];
+short number_of_inmates = 0;
 
 void ingsoc_init(ingsoc *insoci)
 {
@@ -114,6 +115,7 @@ size_t revert_short(char *buffer, size_t pos, unsigned short *data){
     memcpy(data,temp,length);
     return length + pos;
 }
+
 ingsoc *fromSerial(char *buffer){
     /* Does the exact opposite of toSerial it converts the buffer to an ingsock*/
     ingsoc *pack= (ingsoc*)calloc(1, sizeof(ingsoc));
@@ -276,19 +278,30 @@ bool _sendToJail(ingsoc *in){
     if(i <= MAX_JAIL){
         jail[i] = *in;
         jailer[i] = 1;
+        number_of_inmates++;
         return true;
     }
     return false; //NO jail space left
 }
 ingsoc *_getFromJail_byID(int id){
-
-    printf("SEQ \e[38;5;40m%ld\e[0m out of jail\n", jail[id].SEQ);
-    jailer[id] = 0;
-    return &jail[id];
+        printf("SEQ \e[38;5;40m%ld\e[0m out of jail\n", jail[id].SEQ);
+        jailer[id] = 0;
+        number_of_inmates--;
+        return &jail[id];
 }
 ingsoc *_getFirstFromJail(){
-    int i = 0;
-    while(jailer[i] == 1 & i <= MAX_JAIL){ i++; } // Finds a empty spot in jail
+    int i =0;
+    int loop_counter = 0;
+    do{
+        i = ingsoc_randomNr(0,MAX_JAIL);
+        printf("getformjail loop_counter=%d i=%d number_of_inmates=%d\n", loop_counter, i, number_of_inmates);
+        loop_counter++;
+        //if(i > MAX_JAIL - 1) i = 0;
+        if(loop_counter > 60) {
+            printf("\e[38;5;13mFul lösning på problemet\n\e[0m\n");
+            break;
+        }
+    } while(jailer[i] == 0);
     return _getFromJail_byID(i);
 }
 
@@ -311,8 +324,9 @@ short errorGenerator( ingsoc* data ){
         * jail. To do that we use a an array of sort to mimic select  */
         if (CHANCE < CHANCE_TO_GET_OUT_ORDER){
             /* Retain package to jail*/
-            if(_sendToJail(data)) printf("sended a ingsoc struct %sto\e[0m jail", errFormat);
-            else printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
+            _sendToJail(data);
+            //if(_sendToJail(data)) //printf("sended a ingsoc struct %sto\e[0m jail", errFormat);
+            //else //printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
             ret += 2;
         }
         if(CHANCE < 40){
@@ -322,7 +336,7 @@ short errorGenerator( ingsoc* data ){
         }
     } else if( state == 1){
         /* Pacage breakes out of jail and is sended */
-        data = _getFirstFromJail();
+        if(number_of_inmates > 0) data = _getFirstFromJail();
         state = 0;
     }
 
