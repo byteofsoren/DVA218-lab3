@@ -388,10 +388,6 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 4:
 
                 printf("Client - No more packages to send");
-                ingsoc_init(&toWrite);
-                ingsoc_seqnr(&toWrite);
-                toWrite.FIN = true;
-                ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 running = 0;
                 free(buffer);
                 free(queue);
