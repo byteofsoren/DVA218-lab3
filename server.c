@@ -74,6 +74,7 @@ void server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr
     toWrite.ACKnr = LatestRecSeq;
 
     do {
+
         /* We have already received a disconnect request from the client and will send back an ACK+FIN to
          * acknowledge that the server will also disconnect in a few moments, it will try to do so 3 times
          * before giving up and just disconnecting if no final ACK is received */
@@ -191,9 +192,12 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                             printf("Server - final ACK received\n");
                             state = 2;
                         }
-                            /* After 3 failed attempts we will go back to the idle state */
-                        else {
-                            printf("Server - ACK not received, attempt: %d", n + 1);
+
+                        /* After 3 failed attempts we will go back to the idle state */
+                        else
+                        {
+                            printf("Server - ACK not received, attempt: %d\n", n + 1);
+
                             n++;
                         }
                     } else {
@@ -294,6 +298,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         PlaceInMessage++;
                     }
                     populated[PlaceInWindow] = false;
+                    LatestRecSeq = Window[PlaceInWindow].SEQ;
                     NrInWindow--;
                     PlaceInWindow++;
                     if ((int) PlaceInWindow >= windowSize) {
