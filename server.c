@@ -146,7 +146,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                     if (ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
                         /* If it receives the SYN from client it proceeds to the next state */
                         if (toRead.SYN == true) {
-                            printf("Server - SYN received\n");
+                            printf("Server - SYN received on %d\n", (int)toRead.SEQ);
                             /* Deciding on what windowSize to use */
                             if (toRead.length < windowSize) {
                                 windowSize = toRead.length;
@@ -170,7 +170,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                 do {
                     /* Sends the package to client */
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                    printf("Server - ACK + SYN sent\n");
+                    printf("Server - ACK + SYN sent on %d with SEQ: %d\n",(int)toWrite.ACKnr, (int)toWrite.SEQ);
                     /* set timer to tell select for how long to look for a change before calling a timeout */
                     timer.tv_sec = 20;
                     timer.tv_usec = 5000;
@@ -189,7 +189,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                         /* After sending SYN+ACK and receiving the final ack from client
                          * it will proceed to the next state, which is the final state */
                         if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                            printf("Server - final ACK received\n");
+                            printf("Server - final ACK received for %d\n", (int) toRead.SEQ);
                             state = 2;
                         }
 
@@ -365,7 +365,7 @@ void Server_Main(int arg){
     printf("\n[waiting for connections...]\n");
 
     windowSize = Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
-    printf("Window size if %d\n", windowSize);
+    printf("Window size is %d\n", windowSize);
     SWRecv(&fileDescriptor, &activeFdSet, &hostInfo, windowSize);
     server_disconnect(&fileDescriptor, &activeFdSet, &hostInfo);
 
