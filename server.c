@@ -172,8 +172,8 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                     printf("Server - ACK + SYN sent on %d with SEQ: %d\n",(int)toWrite.ACKnr, (int)toWrite.SEQ);
                     /* set timer to tell select for how long to look for a change before calling a timeout */
-                    timer.tv_sec = 20;
-                    timer.tv_usec = 5000;
+                    timer.tv_sec = 1;
+                    timer.tv_usec = 0;
                     readFdSet = *activeFdSet;
                     /* Looks for changes in FD */
                     if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
