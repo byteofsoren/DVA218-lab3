@@ -88,7 +88,7 @@ int toSerial(ingsoc *package, char *out){
     counter = convert_short(buffer,  counter, package->cksum);
     counter = convert_short(buffer, counter, package->length);
     /* Bitwise copy of the data in the struct to the buffer array*/
-    memcpy(buffer + counter, package->data, 255);
+    memcpy(buffer + counter, package->data, MAX_DATA);
     /* Then we copy the buffer out of stack back to the out inter */
     memcpy(out, buffer, bytes);
     return bytes;
@@ -210,7 +210,7 @@ void input(char* msg)		//my input function from user
 {
     char dummy;
 
-    fgets(msg, 1024, stdin);
+    fgets(msg, MAXMSG, stdin);
 
     if (*(msg + (strlen(msg) - 1)) == '\n')		//if the last char is \n. Changes it to \0
     {

@@ -27,6 +27,7 @@
 
 #define PORT 5555
 #define MAXMSG 1024
+#define MAX_DATA 256
 /*
     ___      ___
     \  \    /  /
@@ -41,7 +42,7 @@ typedef struct{
     bool ACK, FIN, RES, SYN;
     size_t ACKnr, SEQ, clientID;
     unsigned short cksum, length;
-    char data[256];
+    char data[MAX_DATA];
 
 }ingsoc;
 
