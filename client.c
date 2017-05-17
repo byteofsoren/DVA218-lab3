@@ -164,11 +164,13 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
     printf("Starting client client_dis_connect\n");
     int counter = 3;
     ingsoc sFin;
+    ingsoc rAck;
     ingsoc_init(&sFin);
     ingsoc_seqnr(&sFin);
     sFin.FIN = true;
     while(counter >= 0) {
         ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+        printf("Sent fin with SEQ: %d\n", (int)sFin.SEQ);
         struct timeval timer;
         timer.tv_sec = 10;
         timer.tv_usec = 0;
@@ -176,17 +178,19 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
 
         int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
         if (stemp == -1) perror("select");
-        if (FD_ISSET(*GSOCKET, &GFD_SET)) {
+        if (FD_ISSET(*GSOCKET, &GFD_SET))
+        {
             // Reads message for server.
-            ingsoc rAck;
             if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0)
             {
-                if (rAck.ACK == true && rAck.FIN == true) {
-                    printf("Recived fin + ack");
+                if (rAck.ACK == true && rAck.FIN == true && rAck.ACKnr == sFin.SEQ) {
+                    printf("Recived fin + ack for %d\n", (int) rAck.ACKnr);
+                    ingsoc_init(&sFin);
+                    ingsoc_seqnr(&sFin);
                     sFin.ACK = true;
+                    sFin.ACKnr = rAck.SEQ;
                     ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
                     return 0;
-                    // Do i need tto do any discconecting on UDP?
                 }
             }
         }
