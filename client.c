@@ -168,6 +168,7 @@ int client_dis_connect(int *GSOCKET, fd_set GFD_SET, struct sockaddr_in *SERVER_
     ingsoc_init(&sFin);
     ingsoc_seqnr(&sFin);
     sFin.FIN = true;
+    usleep(40);
     while(counter >= 0) {
         ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
         printf("Sent fin with SEQ: %d\n", (int)sFin.SEQ);
@@ -303,7 +304,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 1:
                 ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(ingsoc), hostInfo);
-                printf("Client - Package %d sent, SEQ nr: %d\n", PlaceInWindow, (int) (queue[PlaceInWindow]).SEQ);
+                printf("Client - Package %d sent, SEQ nr: %d\n", PlaceInMessage, (int) (queue[PlaceInWindow]).SEQ);
                 sent[PlaceInWindow] = clock();
                 PlaceInWindow++;
                 if (PlaceInWindow >= windowSize) {
