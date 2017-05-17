@@ -1,7 +1,7 @@
 #include "ingsoc.h"
 
 #define PORT 5555
-#define MAXMSG 1024
+
 size_t LatestRecSeq;
 int make_Socket6(unsigned short int port) {
     int sock;
@@ -234,7 +234,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     fd_set readFdSet;
     int offset = 0;
     //ingsoc window[windowSize];
-    char *message = malloc(1024);
+    char *message = malloc(MAXMSG);
+    memset(message, '\0', MAXMSG);
     int PlaceInMessage = 0;
     ingsoc *Window = malloc(windowSize * sizeof(ingsoc));
     bool *populated = malloc(windowSize * sizeof(bool));
