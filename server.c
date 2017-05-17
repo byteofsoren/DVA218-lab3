@@ -220,8 +220,9 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
     } while (running == 1);
     return windowSize;
 }
-void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
-
+void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize)
+{
+    size_t StartSEQ = LatestRecSeq + 1;
     ingsoc toWrite, toRead;
     int state = 0;
     size_t toACK = 0;
@@ -292,7 +293,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 1:
 
-                printf("Server - Package %ld received, SEQnr: %d\n", startPos, (int) toRead.SEQ);
+                printf("Server - Package %ld received, SEQnr: %d\n", (toRead.SEQ - StartSEQ), (int) toRead.SEQ);
                 if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false) {
                     for (i = 0; i < Window[PlaceInWindow].length; i++) {
                         message[PlaceInMessage] = Window[PlaceInWindow].data[i];
