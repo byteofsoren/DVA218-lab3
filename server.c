@@ -189,7 +189,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                         /* After sending SYN+ACK and receiving the final ack from client
                          * it will proceed to the next state, which is the final state */
                         if (toRead.ACK == true && toRead.ACKnr == toWrite.SEQ) {
-                            printf("Server - final ACK received for %d\n", toRead.SEQ);
+                            printf("Server - final ACK received for %d\n", (int) toRead.SEQ);
                             state = 2;
                         }
 
