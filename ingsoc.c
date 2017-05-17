@@ -387,7 +387,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     }
     if( err == 2 | err == 1+2 | err == 2+4){
         //printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
-        printf(".\s");
+        printf(".\n");
     }else{
         newspeak(data);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));

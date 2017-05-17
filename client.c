@@ -68,6 +68,8 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     size_t ACK_NR = 0;
     int windowSize = ingsoc_randomNr(3, 20);
     ingsoc sSyn;
+    ingsoc rAck;
+    ingsoc sACK;
     //FD_ZERO(&GFD_SET);
     //FD_SET(*GSOCKET, &GFD_SET);
     while (running) {
@@ -84,6 +86,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 while(counter > 0 && state == 0) {
                     struct timeval timer;
                     ingsoc_writeMessage(*GSOCKET, &sSyn, sizeof(sSyn), SERVER_NAME);
+                    printf("Sending SYN to server with %d\n", (int) sSyn.SEQ);
                     timer.tv_sec = 1;
                     timer.tv_usec = 0;
                     GFD_SET = *ActiveFdSet;
@@ -92,7 +95,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                         perror("select");
                     }
                     if (FD_ISSET(*GSOCKET, &GFD_SET)) {
-                        ingsoc rAck;
+
 
                         if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0)
                         {
@@ -121,12 +124,11 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 //or time out
                 break;
             case 1:{
-                ingsoc sACK;
                 ingsoc_init(&sACK);
                 ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
-                printf("Sending ACK_NR to server\n");
+                printf("Sending ACK on %d with SEQ: %d\n",(int) rAck.ACKnr,(int) sACK.SEQ);
                 ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), SERVER_NAME);
                 struct timeval timer;
                 timer.tv_sec = 5;
@@ -141,7 +143,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 if(FD_ISSET(*GSOCKET, &GFD_SET)){
                     ingsoc rACK;
                     ingsoc_readMessage(*GSOCKET, &rACK, SERVER_NAME);
-                    if(rACK.ACK == true && rACK.SYN == true && rACK.ACK == sSyn.SEQ){
+                    if(rACK.ACK == true && rACK.SYN == true && rACK.ACKnr == sSyn.SEQ){
                         printf("Received ACK + SYN in final state\n");
                     }
                 }else{
