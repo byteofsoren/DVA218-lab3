@@ -166,23 +166,23 @@ u_int CheckSumConf(void *cnf)
 }
 
 size_t ingsoc_randomNr(size_t min, size_t max){
-// This is my random number generator
-  size_t result = 0 , low = 0 ,hig = 0;
+    /* Random number generator */
+    size_t result = 0 , low = 0 ,hig = 0;
 
-  if ( min < max) {
-    low = min;
-    hig = max + 1;        // include the max result in the output
-  }  else {
-    low = max + 1;        // include the max result in the output
-    hig = min;
-  }
-  result = rand() % (hig - low)+ low;  /* What this do is better expalined with an exampel.
-  Lest say you get;
-    rand()=234532   hig=20    low=5
-    first evaluet (hig-low)=15
-    then 234532 % 15 = 7
-    last 7 + 5 = 12  */
-  return result;
+    if ( min < max) {
+        low = min;
+        hig = max + 1;        // include the max result in the output
+    }  else {
+        low = max + 1;        // include the max result in the output
+        hig = min;
+    }
+    result = rand() % (hig - low)+ low;  /* What this do is better expalined with an exampel.
+    Lest say you get;
+        rand()=234532   hig=20    low=5
+        first evaluet (hig-low)=15
+        then 234532 % 15 = 7
+        last 7 + 5 = 12  */
+    return result;
 }
 
 
@@ -227,27 +227,41 @@ void input(char* msg)		//my input function from user
 }
 
 int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info){
+    /* ingsoc_readMesssage is used to read data form sockets back to who ever
+     * function that called it form the beginning. The data pointer in
+     * the argument section is used as an output, The return value form this
+     * function is number of bytes read or -1 for no package received. */
 
     unsigned nOfBytes = sizeof(*host_info);
     int dataRead = 0, sentChSum = 0;
-//    char buffer[MAXMSG];
+    /* First we try to read data form socket and store the data in the data
+     * pointer in the argument */
 
     dataRead = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
     if(dataRead < 0){
+        /* If the was not received we get an error message and returns with -1
+         * to tell the calling function that data wasn't read */
         perror("readMessage - Could not READ data");
-        //exit(EXIT_FAILURE);
         return -1;
     }
+    /* Checksum calculation. The check sum is calculated by first convert the
+     * entire struct to an char array and then preform a summarisation of the
+     * chars. For long messages that should be pretty secure way to solve the
+     * checksum problem */
     sentChSum = data->cksum;
     data->cksum = 0;
+    /* First we stored the checksum from the received data struct and then we
+     * set it to zero because we want to recalculate the checksum. 
+     * Now we are going to initialize a buffer that is going to
+     * be used in the serialisation */
     size_t buffer_size = sizeof(ingsoc) + 10;
     char buff[buffer_size];
     char *buffer = buff;
     memset(buffer, 0, buffer_size);
-
+    /* send the data pointer and buffer to serialization */
     toSerial(data,buffer);
+    /* recalculate the checksum based on the buffer */
     data->cksum = ingsoc_cksum(buffer, buffer_size);
-    //printf("%d\n",data->cksum);
     if(data->cksum == sentChSum)
     {
         return 0;
@@ -256,6 +270,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     {
         return -1;
     }
+    return dataRead;
 }
 /* writeMessage
  * Writes the string message to the file (socket)
@@ -265,7 +280,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
 short _numberInJail(){
     /* Returns the number of packages in jail */
     short total = 0;
-    while(jailer[total] == 1 & total <= MAX_JAIL){ total++; } // Loops the jail to coutnt jailed item
+    while((jailer[total] == 1) & (total <= MAX_JAIL)){ total++; } // Loops the jail to coutnt jailed item
     return total;
 }
 
@@ -366,12 +381,13 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         /* Breakes a old data out of jail */
         ingsoc outofjail;
         errorGenerator(&outofjail);
-        printf("Breaking out of jail\n");
+        //printf("Breaking out of jail\n");
         newspeak(&outofjail);
         nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
     if( err == 2 | err == 1+2 | err == 2+4){
-        printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
+        //printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
+        printf(".\s");
     }else{
         newspeak(data);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
