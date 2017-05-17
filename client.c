@@ -215,8 +215,8 @@ int client_dis_connect(int *GSOCKET, fd_set *ActiveFdSet, struct sockaddr_in *SE
     // close
     return 0;
 }
-void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize) {
-
+void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize)
+{
     ingsoc toWrite, toRead;//window[windowSize];
     ingsoc *queue = malloc(windowSize * sizeof(ingsoc));
     clock_t *sent = malloc(windowSize * sizeof(clock_t));
@@ -228,7 +228,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int length = 0;
     int NrInWindow = 0;     //how many packages there is in the window
     int PlaceInMessage = 0;     //where in the string to be sent we are
-    //int tmpPos;
+    size_t StartSEQ = 0;
     char *buffer = malloc(MAXMSG);
     memset(buffer, '\0', MAXMSG);
     fd_set readFdSet;
@@ -298,6 +298,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         sent[PlaceInWindow] = clock();
                         populated[PlaceInWindow] = true;
                         NrInWindow++;
+                        if(StartSEQ == 0)
+                        {
+                            StartSEQ = toWrite.SEQ;
+                        }
                     }
                 }
                 else {
@@ -318,7 +322,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 1:
                 ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(ingsoc), hostInfo);
-                printf("Client - Package %d sent, SEQ nr: %d\n", PlaceInMessage, (int) (queue[PlaceInWindow]).SEQ);
+                printf("Client - Package %ld sent, SEQ nr: %d\n", (queue[PlaceInWindow].SEQ - StartSEQ), (int) (queue[PlaceInWindow]).SEQ);
                 sent[PlaceInWindow] = clock();
                 PlaceInWindow++;
                 if (PlaceInWindow >= windowSize) {
@@ -394,7 +398,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 3:
                 ingsoc_writeMessage(*fileDescriptor, &queue[PackToResend], sizeof(ingsoc), hostInfo);
-                printf("Client - Package %d resent , SEQ nr: %d\n", PackToResend, (int) (queue[PackToResend]).SEQ);
+                printf("Client - Package %ld resent , SEQ nr: %d\n", (queue[PlaceInWindow].SEQ - StartSEQ), (int) (queue[PackToResend]).SEQ);
                 sent[PackToResend] = clock();
                 state = 0;
                 break;
