@@ -333,6 +333,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 8:
                 message[PlaceInMessage] = '\0';
                 /* Writes out message with green text \e[032m */
+                printf("FIN received with SEQ: %d\n", (int)toRead.SEQ);
                 printf("--Message was--\n[\e[032m%s \e[0m]\n", message);
                 running = 0;
                 free(message);

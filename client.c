@@ -196,6 +196,7 @@ int client_dis_connect(int *GSOCKET, fd_set *ActiveFdSet, struct sockaddr_in *SE
                     sFin.ACK = true;
                     sFin.ACKnr = rAck.SEQ;
                     ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
+                    printf("ACK sent on %d with SEQ: %d\n", (int)rAck.SEQ, (int)sFin.SEQ);
                     return 0;
                 }
                 else

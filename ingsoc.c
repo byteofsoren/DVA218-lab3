@@ -336,7 +336,7 @@ short errorGenerator( ingsoc* data ){
     /* Uses a static state machine to store the sate between runs */
     if(state == 0){
         if(CHANCE < CHANCE_TO_GET_CHKSUM_ERROR){
-            printf("%sChec sum error\e[0m\n", errFormat);
+            printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
             data->cksum  = 6543;
             ret += 1;
         }
