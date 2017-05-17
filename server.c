@@ -365,7 +365,7 @@ void Server_Main(int arg){
     printf("\n[waiting for connections...]\n");
 
     windowSize = Threeway(&fileDescriptor, &activeFdSet, &hostInfo);
-    printf("Window size if %d\n", windowSize);
+    printf("Window size is %d\n", windowSize);
     SWRecv(&fileDescriptor, &activeFdSet, &hostInfo, windowSize);
     server_disconnect(&fileDescriptor, &activeFdSet, &hostInfo);
 

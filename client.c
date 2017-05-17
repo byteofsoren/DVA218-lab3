@@ -100,7 +100,7 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                         if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0)
                         {
                             if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
-
+                                printf("ACK + SYN received for %d with SEQ %d\n", (int)rAck.ACKnr, (int)rAck.SEQ);
                                 ACK_NR = rAck.SEQ;
                                 windowSize = rAck.length;
                                 state = 1;
@@ -128,30 +128,32 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
                 ingsoc_seqnr(&sACK);
                 sACK.ACK = true;
                 sACK.ACKnr = ACK_NR;
-                printf("Sending ACK on %d with SEQ: %d\n",(int) rAck.ACKnr,(int) sACK.SEQ);
-                ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), SERVER_NAME);
-                struct timeval timer;
-                timer.tv_sec = 5;
-                timer.tv_usec = 0;
-                printf("Reading socket in final state\n");
-                GFD_SET = *ActiveFdSet;
-                int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
-                if(stemp == -1){
-                   printf("Problem with select in sate 1");
-                }
 
-                if(FD_ISSET(*GSOCKET, &GFD_SET)){
-                    ingsoc rACK;
-                    ingsoc_readMessage(*GSOCKET, &rACK, SERVER_NAME);
-                    if(rACK.ACK == true && rACK.SYN == true && rACK.ACKnr == sSyn.SEQ){
-                        printf("Received ACK + SYN in final state\n");
+                do {
+                    printf("Sending ACK on %d with SEQ: %d\n", (int) rAck.SEQ, (int) sACK.SEQ);
+                    ingsoc_writeMessage(*GSOCKET, &sACK, sizeof(sACK), SERVER_NAME);
+                    struct timeval timer;
+                    timer.tv_sec = 5;
+                    timer.tv_usec = 0;
+                    printf("Reading socket in final state\n");
+                    GFD_SET = *ActiveFdSet;
+                    int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
+                    if (stemp == -1) {
+                        printf("Problem with select in sate 1");
                     }
-                }else{
-                    // time out exits the loop
-                    running = 0;    // Stops the program
-                    printf("No duplicate packets...continuing to sliding Windows\n");
-                }
 
+                    if (FD_ISSET(*GSOCKET, &GFD_SET)) {
+                        ingsoc rACK;
+                        ingsoc_readMessage(*GSOCKET, &rACK, SERVER_NAME);
+                        if (rACK.ACK == true && rACK.SYN == true && rACK.ACKnr == sSyn.SEQ) {
+                            printf("Received ACK + SYN in final state\n");
+                        }
+                    } else {
+                        // time out exits the loop
+                        running = 0;    // Stops the program
+                        printf("No duplicate packets...continuing to sliding Windows\n");
+                    }
+                }while(running == 1);
                 break;
             }
         }
