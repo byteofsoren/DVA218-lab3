@@ -329,7 +329,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 toWrite.ACK = true;
                 toWrite.ACKnr = toRead.SEQ;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                printf("Sending ACK on %d\n", (int) toWrite.ACKnr);
+                printf("Sending ACK on %d with SEQ: %d\n", (int) toWrite.ACKnr, (int)toWrite.SEQ);
                 state = 0;
                 break;
             case 8:
