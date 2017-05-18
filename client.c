@@ -231,7 +231,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int PlaceInWindow = 0;      //where in the windows we are
     int PlaceForAck = 0;
     int length = 0;
-    int NrInWindow = 0;     //how many packages there is in the window
+    int NrInWindow = 0;     //how many packages there is in the window at a given time
     int PlaceInMessage = 0;     //where in the string to be sent we are
     size_t StartSEQ = 0;
     char *buffer = malloc(MAXMSG);
@@ -266,13 +266,13 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
         }
 
         /*  Every lap the select is run to check for packages that have returned (on our FD, fileDescriptor)
-         *  If so state will be switched to 2 as long as we are not in a sending state (1 & 3) and there the incoming will be managed */
+         *  If so state will be switched to 2 to read the incoming as long as we are not in a sending state (1 & 3) and there the incoming will be managed */
         timer.tv_usec = 1;
         timer.tv_sec = 0;
         readFdSet = *activeFdSet;
         if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
             perror("Client - Select failure");
-        /*  */
+        
         if (FD_ISSET(*fileDescriptor, &readFdSet)) {
             if (state != 1 && state != 3) {
                 state = 2;
@@ -281,39 +281,57 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
 
         switch (state) {
+            /* Case 0 have everything to do with with packet packaging and deciding when new package is to be sent */
             case 0:
+                /*  Firstly when there is space in the window a new package will be handled */
                 if(NrInWindow < windowSize && populated[PlaceInWindow] == false)
                 {
                     state = 1;
+
                     if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
                     {
                         state = 4;
                     }
-                    else {
-                        if (length - PlaceInMessage < 3) {
+                    else
+                    {
+                        /*  Filling the new package with its message depending on the situation.
+                         *  In case when the total message left is smaller than what the maximum we send we just send the rest.
+                         *  Otherwise we randomise (for now between 1 and 3) how much to be sent in this package*/
+                        if (length - PlaceInMessage < 3)
+                        {
                             toWrite.length = (length - PlaceInMessage);
-                        } else {
+                        } else
+                        {
                             toWrite.length = ingsoc_randomNr(1, 3);
                         }
-                        for (i = 0; i < toWrite.length; i++) {
+                        for (i = 0; i < toWrite.length; i++)
+                        {
                             toWrite.data[i] = buffer[PlaceInMessage];
                             PlaceInMessage++;
                         }
 
+                        /*  Now a \0 is added at the end of the message just to make it look nice.
+                         *  Since data in ingsoc is 256 bytes there will a lot of scrap data sending small messages.
+                         *  But \0 will make one destinction when debugging or printing a specific message
+                         *  Then a SEQ number is added, it is placed in the queue, specified as populated place in window.*/
                         toWrite.data[toWrite.length] = '\0';
                         ingsoc_seqnr(&toWrite);
                         queue[PlaceInWindow] = toWrite;
-                        sent[PlaceInWindow] = clock();
+                        //sent[PlaceInWindow] = clock();
                         populated[PlaceInWindow] = true;
                         NrInWindow++;
+
+                        /* This little sequence is just a variable used for printing package number to the user */
                         if(StartSEQ == 0)
                         {
                             StartSEQ = toWrite.SEQ;
                         }
                     }
                 }
+                /*  In case when there is no space in the window there is no other thing to do than wait for a package ACK to be returned. 
+				 *  But since we also want to timeout older packages this is not infinite to it goes back to the first section to check on sent packages.*/
                 else {
-                    timer.tv_usec = 100;
+                    timer.tv_usec = 1000;
                     timer.tv_sec = 0;
                     readFdSet = *activeFdSet;
 
@@ -329,8 +347,13 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 break;
 
             case 1:
+				/*	The last messsage in the queue is sent a way which is the latest created message
+				 *	Then a nice message is sent. The first variable in that is the package number where StartSEQ is the first sent package*/
                 ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(ingsoc), hostInfo);
                 printf("Client - Package %ld sent, SEQ nr: %d\n", (queue[PlaceInWindow].SEQ - StartSEQ), (int) (queue[PlaceInWindow]).SEQ);
+				
+				/*	The sent package is timestimestamped and the window is moved one more spot (or to the begining if the end of the windows size is reached)
+				 *	Then its is time to go back to the 0 state to create a new package*/
                 sent[PlaceInWindow] = clock();
                 PlaceInWindow++;
                 if (PlaceInWindow >= windowSize) {
@@ -349,11 +372,13 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 timer.tv_usec = 0;
                 if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                     perror("Client - Select failure");
-
+				/* check if there is a change in our FD or there has been a tieout*/ 
                 if(FD_ISSET(*fileDescriptor, &readFdSet)) {
-                    /* Reads package from client */
+                    /* Reads package from client if our FD has changed */
                     if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
                     {
+						/*	The message handled if it contains an ack and a corresponding ACKnr that is the same as the SEQ of the sent message. 
+						 * 	The sent message we are talking about is the one with the oldest SEQ since that would be the one we are expecting to come as soon as possible*/
                         if(toRead.ACK == true && toRead.ACKnr == queue[PlaceForAck].SEQ)
                         {
                             NrInWindow--;
