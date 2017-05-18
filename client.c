@@ -160,59 +160,72 @@ int client_connect(int *GSOCKET, fd_set *ActiveFdSet, const char *addres, struct
     printf("--- END ---\n\tEnded 3 way handshake function\n");
     return windowSize;
 }
+/* This is the client disconnect function, initialized after sliding window is done sending */
+int client_dis_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo) {
 
-int client_dis_connect(int *GSOCKET, fd_set *ActiveFdSet, struct sockaddr_in *SERVER_NAME)
-{
-    /* This is the disconnect function */
-    printf("Starting client client_dis_connect\n");
+    /* Variables:
+     * counter - Counter
+     * sFin, rAck - Structs to read and write with
+     * readFdSet - Used by select and FD_ISSET to see which sockets there is input on (We only use one)
+     * timer - Used by select to call timeouts */
+
     int counter = 3;
-    fd_set GFD_SET = *ActiveFdSet;
+    fd_set readFdSet = *activeFdSet;
     ingsoc sFin;
     ingsoc rAck;
+    struct timeval timer;
+
+    /* Initializing our structs, setting everything to false and zero, then adding a SEQ nr */
     ingsoc_init(&sFin);
     ingsoc_seqnr(&sFin);
     sFin.FIN = true;
-    usleep(40);
-    while(counter >= 0) {
-        ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-        printf("Sent fin with SEQ: %d\n", (int)sFin.SEQ);
-        struct timeval timer;
+    //usleep(40);
+
+    printf("Client - Disconnecting\n");
+
+    /* The client initializes the disconnect by sending a FIN (disconnect request) to the server,
+     * it then waits to receive a FIN+ACK and then sending the final ACK to the server before disconnecting
+     * It tries to do this 3 times before disconnecting anyway */
+    while (counter >= 0) {
+
+        ingsoc_writeMessage(*fileDescriptor, &sFin, sizeof(sFin), hostInfo);
+        printf("Client - FIN sent with SEQ nr: %d\n", (int) sFin.SEQ);
+
+        /* select is looking for changes in FD for 5 sec before calling timeout
+         * With each timeout it subtracts one from the counter down to zero */
         timer.tv_sec = 5;
-        timer.tv_usec = 0;
-        printf("Waiting for fin + ack\n");
-        GFD_SET = *ActiveFdSet;
-        int stemp = select(FD_SETSIZE, &GFD_SET, NULL, NULL, &timer);
-        if (stemp == -1) perror("select");
-        if (FD_ISSET(*GSOCKET, &GFD_SET))
-        {
-            // Reads message for server.
-            if(ingsoc_readMessage(*GSOCKET, &rAck, SERVER_NAME) == 0)
-            {
+        readFdSet = *activeFdSet;
+        int stemp = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer);
+        if (stemp == -1)
+            perror("Client - Select failed\n");
+        /* Looks if the socket is set */
+        if (FD_ISSET(*fileDescriptor, &readFdSet)) {
+            /* Reads message for server. */
+            if (ingsoc_readMessage(*fileDescriptor, &rAck, hostInfo) == 0) {
+                /* When ACK+FIN is received from server, client answer with the final ACK
+                 * before disconnecting */
                 if (rAck.ACK == true && rAck.FIN == true && rAck.ACKnr == sFin.SEQ) {
-                    printf("Recived fin + ack for %d\n", (int) rAck.ACKnr);
+                    printf("Client - FIN+ACK received on SEQ nr: %d\n", (int)rAck.ACKnr);
+
                     ingsoc_init(&sFin);
                     ingsoc_seqnr(&sFin);
                     sFin.ACK = true;
                     sFin.ACKnr = rAck.SEQ;
-                    ingsoc_writeMessage(*GSOCKET, &sFin, sizeof(sFin), SERVER_NAME);
-                    printf("ACK sent on %d with SEQ: %d\n", (int)rAck.SEQ, (int)sFin.SEQ);
+                    /* Sending the final ACK to server, no guarantees this will reach the server
+                     * but we disconnect anyway */
+                    ingsoc_writeMessage(*fileDescriptor, &sFin, sizeof(sFin), hostInfo);
+                    printf("Client - ACK sent on %d with SEQ nr: %d\n", (int) rAck.SEQ, (int) sFin.SEQ);
                     return 0;
-                }
-                else
-                {
-                    printf("No FIN + ACK revived\n");
+                    
+                } else {
+                    printf("Client - No FIN + ACK revived\n");
                 }
             }
-        }
-        else
-        {
-            printf("Timeout\n");
+        } else {
+            printf("Client - Timeout %d\n", 4-counter);
         }
         counter--;
     }
-    // wait for FIN + ACK
-    // Send ACK + FIN
-    // close
     return 0;
 }
 void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize)
