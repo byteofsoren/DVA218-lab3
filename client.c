@@ -228,8 +228,8 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     int state = 0;
     int i,t = 0,  PackToResend;
     int running = 1;
-    int PlaceInWindow = 0;      //where in the windows we are
-    int PlaceForAck = 0;
+    int PlaceInWindow = 0;      //where in the windows we are sending 
+    int PlaceForAck = 0;		//Very similar to PlaceInWindow but based on the oldest sent position (that have not been ACKed) 
     int length = 0;
     int NrInWindow = 0;     //how many packages there is in the window at a given time
     int PlaceInMessage = 0;     //where in the string to be sent we are
@@ -255,16 +255,16 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     do {
         /*  Goes through all window places in sliding window to check if some packet that have been sent
          *  needs a timout. So a populated place that has not received an ACK*/
-        for (i = 0; i < windowSize; i++)
+        if(state != 1)
         {
-            if((clock() - sent[i]) > 10000 && populated[i] == true && queue[i].ACK == false)
-            {
-                state = 3;
-                PackToResend = i;
-                i = windowSize;
+            for (i = 0; i < windowSize; i++) {
+                if ((clock() - sent[i]) > 10000 && populated[i] == true && queue[i].ACK == false) {
+                    state = 3;
+                    PackToResend = i;
+                    i = windowSize;
+                }
             }
         }
-
         /*  Every lap the select is run to check for packages that have returned (on our FD, fileDescriptor)
          *  If so state will be switched to 2 to read the incoming as long as we are not in a sending state (1 & 3) and there the incoming will be managed */
         timer.tv_usec = 1;
@@ -432,7 +432,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 3:
                 ingsoc_writeMessage(*fileDescriptor, &queue[PackToResend], sizeof(ingsoc), hostInfo);
-                printf("Client - Package %ld resent , SEQ nr: %d\n", (queue[PlaceInWindow].SEQ - StartSEQ), (int) (queue[PackToResend]).SEQ);
+                printf("Client - Package %ld resent , SEQ nr: %d\n", (queue[PackToResend].SEQ - StartSEQ), (int) (queue[PackToResend]).SEQ);
                 sent[PackToResend] = clock();
                 state = 0;
                 break;
