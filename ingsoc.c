@@ -5,8 +5,8 @@
 #define CHANCE  (short) ingsoc_randomNr(0,100)
 #define MAX_JAIL 3
 #define CHANCE_TO_GET_CHKSUM_ERROR 10
-#define CHANCE_TO_GET_OUT_ORDER 0
-#define ERROR_MESSAGE_ON_NO_SOCKET
+#define CHANCE_TO_GET_OUT_ORDER 10
+//#define ERROR_MESSAGE_ON_NO_SOCKET
 ingsoc jail[MAX_JAIL];
 short jailer[MAX_JAIL];
 short number_of_inmates = 0;
@@ -210,9 +210,9 @@ void ingsoc_seqnr(ingsoc *in)
 void input(char* msg)		//my input function from user
 {
     char dummy;
-
+    printf("\e[032m");
     fgets(msg, MAXMSG, stdin);
-
+    printf("\e[0m");
     if (*(msg + (strlen(msg) - 1)) == '\n')		//if the last char is \n. Changes it to \0
     {
         *(msg + (strlen(msg) - 1)) = '\0';
@@ -340,7 +340,7 @@ short errorGenerator( ingsoc* data ){
             printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
             data->cksum  = (short) ingsoc_randomNr(120,3000);
             ret += 1;
-        } else
+        } 
         /* Generate out of order
         * Its possible randomly both send data to jail and check out data form
         * jail. To do that we use an array of sort to mimic select  */
@@ -350,7 +350,7 @@ short errorGenerator( ingsoc* data ){
             //if(_sendToJail(data)) //printf("sended a ingsoc struct %sto\e[0m jail", errFormat);
             //else //printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
             ret += 2;
-        }else
+        }
         if(CHANCE < 40){
             /* Return a package from jail to sender and set state 1 */
             if(_numberInJail() > 0) ret+=4;
@@ -391,15 +391,14 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         //printf("Breaking out of jail\n");
         newspeak(&outofjail);
         nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
-    }else if( (err == 2) | (err == 1+2) | (err == 2+4)){
+    }
+    if( (err == 2) | (err == 1+2) | (err == 2+4)){
         //printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
         printf(".\n");
     }else{
         newspeak(data);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
-
-    printf("\e[031mwriteMessage nOfBytes=%d\e[0m\n", nOfBytes);
 
     if(nOfBytes < 0){
         perror("writeMessage - Could \e[031mnot\e[0m WRITE data to socket\n");
