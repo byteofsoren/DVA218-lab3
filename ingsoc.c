@@ -5,7 +5,8 @@
 #define CHANCE  (short) ingsoc_randomNr(0,100)
 #define MAX_JAIL 3
 #define CHANCE_TO_GET_CHKSUM_ERROR 10
-#define CHANCE_TO_GET_OUT_ORDER 10
+#define CHANCE_TO_GET_OUT_ORDER 0
+#define ERROR_MESSAGE_ON_NO_SOCKET
 ingsoc jail[MAX_JAIL];
 short jailer[MAX_JAIL];
 short number_of_inmates = 0;
@@ -337,9 +338,9 @@ short errorGenerator( ingsoc* data ){
     if(state == 0){
         if(CHANCE < CHANCE_TO_GET_CHKSUM_ERROR){
             printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
-            data->cksum  = 6543;
+            data->cksum  = (short) ingsoc_randomNr(120,3000);
             ret += 1;
-        }
+        } else
         /* Generate out of order
         * Its possible randomly both send data to jail and check out data form
         * jail. To do that we use an array of sort to mimic select  */
@@ -349,7 +350,7 @@ short errorGenerator( ingsoc* data ){
             //if(_sendToJail(data)) //printf("sended a ingsoc struct %sto\e[0m jail", errFormat);
             //else //printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
             ret += 2;
-        }
+        }else
         if(CHANCE < 40){
             /* Return a package from jail to sender and set state 1 */
             if(_numberInJail() > 0) ret+=4;
@@ -369,7 +370,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     /* Ingsoc writeMessage is the function writes the data in the insoc
      * structure to the socket but first we calculate the check sum for the
      * gackage, that is done in the ingsoc cksum function */
-    int nOfBytes;
+    int nOfBytes = 0;
     size_t buffer_size = sizeof(ingsoc) + 10;
     char buff[buffer_size];
     char *buffer = buff;
@@ -390,8 +391,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         //printf("Breaking out of jail\n");
         newspeak(&outofjail);
         nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
-    }
-    if( (err == 2) | (err == 1+2) | (err == 2+4)){
+    }else if( (err == 2) | (err == 1+2) | (err == 2+4)){
         //printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
         printf(".\n");
     }else{
@@ -399,8 +399,19 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
 
+    printf("\e[031mwriteMessage nOfBytes=%d\e[0m\n", nOfBytes);
+
     if(nOfBytes < 0){
         perror("writeMessage - Could \e[031mnot\e[0m WRITE data to socket\n");
+#ifdef ERROR_MESSAGE_ON_NO_SOCKET
+        char temp[4];
+        temp[0] = (data->ACK) ? 't' : 'f';
+        temp[1] = (data->FIN) ? 't' : 'f';
+        temp[2] = (data->RES) ? 't' : 'f';
+        temp[3] = (data->SYN) ? 't' : 'f';
+        printf("Flags:%s", temp);
+        printf(" ACKnr=%ld, SEQ=%ld, clientID=%ld, cksum=%d, length=%d", data->ACKnr,data->SEQ, data->clientID, data->cksum, data->length);
+#endif
         //exit(EXIT_FAILURE);
     }
 }
