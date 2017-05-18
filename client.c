@@ -388,7 +388,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                             {
                                 PlaceForAck = 0;
                             }
-                            printf("ACK recieved: %d\n", (int) toRead.ACKnr);
+                            printf("\e[032mACK recieved\e[0m: \e[034m%d\e[0m\n", (int) toRead.ACKnr);
 
                             while(queue[PlaceForAck].ACK == true && populated[PlaceForAck] == true)
                             {
@@ -415,6 +415,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                                 {
                                     queue[t].ACK = true;
                                     t = PlaceForAck - 1;
+                                    printf("\e[032mACK recieved\e[0m: \e[034m%d\e[0m\n", (int) toRead.ACKnr);
                                 }
                                 t++;
                                 if(t >= windowSize)

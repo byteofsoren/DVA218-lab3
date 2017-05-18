@@ -3,10 +3,11 @@
 #include "newspeak.h"
 
 #define CHANCE  (short) ingsoc_randomNr(0,100)
-#define MAX_JAIL 3
+#define MAX_JAIL 10
 #define CHANCE_TO_GET_CHKSUM_ERROR 10
 #define CHANCE_TO_GET_OUT_ORDER 10
 //#define ERROR_MESSAGE_ON_NO_SOCKET
+//#define ERROR_MESSAGE_IN_GENERATOR
 ingsoc jail[MAX_JAIL];
 short jailer[MAX_JAIL];
 short number_of_inmates = 0;
@@ -325,12 +326,15 @@ ingsoc *_returnFromJail(){
 }
 
 short errorGenerator( ingsoc* data ){
-    /* error generator generates error in the communication 
+    /* error generator generates error in the communication
      * The generator uses chance to generate a certain type of error.
      * The chance to get certain type of error is stored in a couple of defines
-     * in the top of the code */
+     * in the top of the file. The return value form this function works on a
+     * binary level that allow return of multiple states*/
 
     //printf("errorGenerator \e[032mStart\e[0m\n");
+    /* The generator have 2 different states that it need to remember between
+     * executions */
     short ret = 0;
     static short state = 0;
     char errFormat[] = "\e[1;31m"; // Placeholder for color text
@@ -340,18 +344,20 @@ short errorGenerator( ingsoc* data ){
             printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
             data->cksum  = (short) ingsoc_randomNr(120,3000);
             ret += 1;
-        } 
+        }
         /* Generate out of order
         * Its possible randomly both send data to jail and check out data form
         * jail. To do that we use an array of sort to mimic select  */
         if (CHANCE < CHANCE_TO_GET_OUT_ORDER){
-            /* Retain package to jail*/
+            /* Send package to jail */
             _sendToJail(data);
-            //if(_sendToJail(data)) //printf("sended a ingsoc struct %sto\e[0m jail", errFormat);
-            //else //printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
+            #ifdef ERROR_MESSAGE_IN_GENERATOR
+            if(_sendToJail(data)) printf("sending a ingsoc struct %sto\e[0m jail", errFormat);
+            else printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
+            #endif
             ret += 2;
         }
-        if(CHANCE < 40){
+        if(CHANCE < 20){
             /* Return a package from jail to sender and set state 1 */
             if(_numberInJail() > 0) ret+=4;
             state = 1;
@@ -376,15 +382,18 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     char *buffer = buff;
     memset(buffer, 0, buffer_size);
     data->cksum = 0;
+    /* First we set the check sum to zero before wi calculate the checksum */
     toSerial(data,buffer);
     data->cksum = ingsoc_cksum(buffer, buffer_size);
-    /* All got so far */
+    /* Checkcsum is now calculated and set in the structure */
     short err = 0;
 
-    /* Error generator tho simulate error */
+    /* Error generator that simulate errors
+     * Read the error generator function to understand how that one works
+     * But it returns a value that corisponds to a certain type of error. */
 
     err = errorGenerator(data);
-    if( (err == 4) | (err == 2+4) | (err == 1+2+4)){
+    if( (err == 4) | (err == 4) | (err == 1+4)){
         /* Breakes a old data out of jail */
         ingsoc outofjail;
         errorGenerator(&outofjail);
@@ -403,6 +412,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
     if(nOfBytes < 0){
         perror("writeMessage - Could \e[031mnot\e[0m WRITE data to socket\n");
 #ifdef ERROR_MESSAGE_ON_NO_SOCKET
+        /* Debugging message */
         char temp[4];
         temp[0] = (data->ACK) ? 't' : 'f';
         temp[1] = (data->FIN) ? 't' : 'f';
@@ -414,42 +424,3 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         //exit(EXIT_FAILURE);
     }
 }
-/* XOR Checksum calculator
- * input:
- * data - string to calculate checksum for
- * length - length of string
- * error - If 1, there is a 10% chance for simulated error, else no errors.
- */
- int checkSum(void *data, int length, int error){
-
-    srand(time(NULL));
-
-    unsigned char *ptr;
-    int i;
-    int check = 4;
-    int r;
-    int XORvalue;
-    int SUMvalue;
-    int ERRORvalue = 0;
-
-    ptr = (unsigned char *)data;
-    XORvalue = 0;
-    SUMvalue = 0;
-
-    for(i = 0; i <= length; i++, ptr++){
-        XORvalue ^= *ptr;
-        SUMvalue += (*ptr * i);
-    }
-    /* If chosen, the code will generate a random error with 10% probability */
-    if(error == 1){
-        r = rand()%10;
-        usleep(1000000);
-        /* errorValue will be between 1 and the checksum value and will
-         * be added to the checksum to simulate an error*/
-        if(r == check) {
-            ERRORvalue = rand() % (XORvalue ^ SUMvalue) + 1;
-        }
-    }
-    /* Will return the checksum, "errorValue" is zero if no error occurs */
-    return((XORvalue ^ SUMvalue) + ERRORvalue);
- }
