@@ -246,11 +246,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 
-    /*for (i = 0; i < nOfPack; i++) {
-
-    }*/
-
+    /*This do is for the running of Client Sliding Window.*/
     do {
+        /*  Goes through all window places in sliding window to check if some packet that have been sent
+         *  needs a timout. So a populated place that has not received an ACK*/
         for (i = 0; i < windowSize; i++)
         {
             if((clock() - sent[i]) > 10000 && populated[i] == true && queue[i].ACK == false)
@@ -259,8 +258,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 PackToResend = i;
                 i = windowSize;
             }
-
         }
+
+        /*  Every lap the select is run to check for packages that have returned (on our FD, fileDescriptor)
+         *  If so state will be switched to 2 as long as we are not in a sending state (1 & 3) and there the incoming will be managed */
         timer.tv_usec = 1;
         timer.tv_sec = 0;
         readFdSet = *activeFdSet;
@@ -272,6 +273,8 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 state = 2;
             }
         }
+
+
         switch (state) {
             case 0:
                 if(NrInWindow < windowSize && populated[PlaceInWindow] == false)
