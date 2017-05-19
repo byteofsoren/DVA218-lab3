@@ -282,17 +282,23 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 								 *	But there is no problem and the window is filled.  */
                                 } else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
                                     state = 1;
+                                    /*  The place in the window for the packet. Put at the right spot directly*/
                                     toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
                                     if ((int) toACK >= windowSize) {
                                         toACK -= windowSize;
                                     }
+                                    /*  Put in the packet into the window and populated trigger is added*/
                                     Window[toACK] = toRead;
                                     populated[toACK] = true;
+                                    /*  If the packet have the same place in the window as the one wanted. (the oldest SEQ packet)*/
                                     if (toACK == PlaceInWindow) {
                                         LatestRecSeq = toRead.SEQ;
-                                    } else {
+                                    }
+                                    /*  Otherwise the packet in this case will be a SEQ further into the future and offset helps noting this for later*/
+                                    else {
                                         offset++;
                                     }
+                                    /*  One more packet in the window is active*/
                                     NrInWindow++;
                                 }
                             }
