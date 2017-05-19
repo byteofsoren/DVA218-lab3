@@ -1,4 +1,5 @@
 #include "ingsoc.h"
+#include "newspeak.h"
 
 #define PORT 5555
 #define hostNameLength 50
@@ -65,7 +66,8 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
     bool running = 1;
     int counter = 5;
     size_t ACK_NR = 0;
-    int windowSize = (int) ingsoc_randomNr(3, 20);
+    //int windowSize = (int) ingsoc_randomNr(3, 20);
+    int windowSize = 50;
     struct timeval timer;
     ingsoc sSyn;
     ingsoc rAck;
@@ -264,15 +266,37 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     fseek(fileHandler, 0, SEEK_END);
     fileLength = ftell(fileHandler) + sizeof(size_t);
     fseek(fileHandler, 0, SEEK_SET);
-    printf("The length of the file was %ld\n", fileLength);
+    printf("The length of the file was %ld byte\n", fileLength);
     /* Ralocks the buffer to acomendate the bigger buffer */
-    buffer = (char *) realloc(buffer, fileLength);
+    memset(buffer, 0 ,MAXMSG);
+    size_t totalLength = fileLength + sizeof(size_t) + 1;
+    buffer = (char *) realloc(buffer, totalLength);
     if(!buffer){
         printf("Memmory error reading file from disk\n");
         exit(EXIT_FAILURE);
     }
+    //convert_size_t(buffer,0,fileLength);
+    printf("Starning memory coppying\n");
     /* Store the lengt of the file in the first 8 byte */
-    convert_size_t(buffer,0,fileLength);
+    memset(buffer,0,totalLength);
+    memcpy(buffer, (void*)&fileLength , sizeof(size_t));
+    printf("Hexdump of the first bytes of first package\n");
+    /*for ( size_t  i = 0;  i < sizeof(size_t); ++ i) {
+       printf("%#.8x ", buffer[i]); 
+    }*/
+    buffer_print(buffer, sizeof(size_t));
+    printf("\n--- END --\n");
+    /* Test to reconvert */
+    char temp[sizeof(size_t)];
+    memset(temp,0, sizeof(size_t));
+    size_t reverted = 0;
+    memcpy(temp, buffer, sizeof(size_t));
+    memcpy((void*)&reverted, temp, sizeof(size_t));
+    printf("Reverted=%ld\n",reverted);
+    if (reverted != fileLength) {
+        printf("Reverting the file fileLength from buffer did not work\n");
+        exit(EXIT_FAILURE);
+    }
     /* Reads data form file in to the buffer */
     fread(buffer + sizeof(size_t) , fileLength, 1, fileHandler);
     fclose(fileHandler);
@@ -335,12 +359,16 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         {
                             toWrite.length = ingsoc_randomNr(1, (MAX_DATA - 1));
                         }
-                        for (i = 0; i < toWrite.length; i++)
+    #ifndef READ_FILE
+                       for (i = 0; i < toWrite.length; i++)
                         {
                             toWrite.data[i] = buffer[PlaceInMessage];
                             PlaceInMessage++;
                         }
-
+    #else
+                        memcpy(&toWrite.data, buffer, MAX_DATA -1);
+                        buffer_print((char*)&buffer, 9);
+    #endif
                         /*  Now a \0 is added at the end of the message just to make it look nice.
                          *  Since data in ingsoc is 256 bytes there will a lot of scrap data sending small messages.
                          *  But \0 will make one destinction when debugging or printing a specific message

@@ -22,3 +22,12 @@ void newspeak(ingsoc *s){
     }
 }
 
+
+void buffer_print(char *buffer, size_t bytes){
+    printf("--Buffer_print--\n");
+    for ( size_t    i = 0;  i < bytes ; ++ i) {
+             printf("%#.8X, ", buffer[i]);
+            if (i % 8 == 7) printf("\n");
+    }
+    printf("\n-- END --\n");
+}

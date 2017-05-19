@@ -1,8 +1,10 @@
 #include "ingsoc.h"
+#include "newspeak.h"
 
 #define PORT 5555
 
 size_t LatestRecSeq;
+
 int make_Socket6(unsigned short int port) {
     int sock;
     struct sockaddr_in6 name;
@@ -127,6 +129,7 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
     int state = 0;
     int running = 1;
     int n = 0, windowSize = (int) ingsoc_randomNr(3, 20);
+    windowSize = 50;
     struct timeval timer;
     fd_set readFdSet;
 
@@ -330,11 +333,32 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACK = true;
 #ifdef READ_FILE
+                /* Locking for package 0. And when we find it it we extract the
+                 * first 8 bytes to resize the buffer */
                 if(toRead.SEQ == StartSEQ + 1){
-                    revert_size_t(toRead.data, 0, &fileLength);
+                    printf("\tSetting length toRead.SEQ=%ld\tStartSEQ=%ld\n", toRead.SEQ, StartSEQ);
+                    //revert_size_t(toRead.data, 0, &fileLength);
+                    size_t length = sizeof(size_t) + 1;
+                    char temp[length];
+                    memset(temp, 0,length);
+                    /* Create a temporary buffer to store a part of the buffer
+                    * Then we bitwise copy the data back out of the temporary buffer */
+                    printf("toRead.dat dump \n");
+                    /*for (size_t i = 0; i < length ; ++i) {
+                        printf("%#.8x ",toRead.data[i]);
+                    }*/
+                    buffer_print(toRead.data, length);
+                    buffer_print((char*) &toRead.data, length);
+                    printf("\n--end--\n");
+                    memcpy(temp, toRead.data , length);
+                    printf("Length=%ld\n---Memmory dump form first package---\n", length);
+                    buffer_print((char*)&toRead.data, 8);
+                    memcpy(&fileLength,temp,length);
+                    if(fileLength == 0) exit(EXIT_FAILURE);
                     message = (char *) realloc(message, fileLength);
-                    printf("The length of the file is %ld\n", fileLength - sizeof(size_t));
+                    printf("\nThe length of the file is \e[031m%ld\e[0m\n", fileLength);
                 }
+//                exit(EXIT_FAILURE);
 #endif
                 toWrite.ACKnr = toRead.SEQ;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);

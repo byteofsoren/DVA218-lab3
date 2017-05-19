@@ -251,6 +251,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
 
     unsigned nOfBytes = sizeof(*host_info);
     int dataRead = 0, sentChSum = 0;
+    static short errCounter = 0;
     /* First we try to read data form socket and store the data in the data
      * pointer in the argument */
 
@@ -259,6 +260,8 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
         /* If the was not received we get an error message and returns with -1
          * to tell the calling function that data wasn't read */
         perror("readMessage - Could not READ data");
+        errCounter++;
+        if(errCounter > 100) exit(EXIT_FAILURE);
         return -1;
     }
     /* Checksum calculation. The check sum is calculated by first convert the
