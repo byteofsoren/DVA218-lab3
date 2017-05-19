@@ -46,6 +46,13 @@ typedef struct{
     char data[MAX_DATA];
 
 }ingsoc;
+#ifdef READ_FILE
+FILE *fileHandler;
+unsigned char *fileBuffer;
+size_t fileLength;
+size_t convert_size_t(char *buffer, size_t pos, size_t data);
+size_t revert_size_t(char *buffer, size_t pos, size_t *data);
+#endif
 
 void ingsoc_show_error_chance();
 void ingsoc_init(ingsoc *ingsoc_i);

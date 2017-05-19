@@ -5,9 +5,9 @@
 #define CHANCE  (short) ingsoc_randomNr(0,100)
 #define PTEST(x) printf("%2.2f\n", x);
 #define MAX_JAIL 10
-#define CHANCE_TO_GET_CHKSUM_ERROR 40
-#define CHANCE_TO_GET_OUT_ORDER 20
-#define CHANCE_TO_RETURN_FROM_JAIL 10
+#define CHANCE_TO_GET_CHKSUM_ERROR 10
+#define CHANCE_TO_GET_OUT_ORDER 10
+#define CHANCE_TO_RETURN_FROM_JAIL 90
 //#define ERROR_MESSAGE_ON_NO_SOCKET
 //#define ERROR_MESSAGE_IN_GENERATOR
 ingsoc jail[MAX_JAIL];
@@ -222,6 +222,9 @@ void ingsoc_seqnr(ingsoc *in)
 }
 void input(char* msg)		//my input function from user
 {
+#ifdef READ_FILE
+    printf("Enter file name: ");
+#endif
     char dummy;
     printf("\e[032m");
     fgets(msg, MAXMSG, stdin);

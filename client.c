@@ -243,11 +243,41 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     {
         populated[i] = false;
     }
-
+#ifndef READ_FILE
     printf("Client - Message to send: \n");
     input(buffer);
     length = (int)strlen(buffer);
+#else
+    /* This part of the code is used to send files over the ingsock structure
+     * filename is declared and prompted */
+    char *fileName = malloc(1024);
+    input(fileName);
+    /* Open the file */
+    fileHandler = fopen(fileName, "rb");
+    if(!fileHandler){
+        printf("Could not read file");
+        exit(EXIT_FAILURE);
+    }
+    /* The file length is read below but we inclease th size of the file with
+     * 8 byte because its neaded to store the length of the file in those first
+     * 8 bifes */
+    fseek(fileHandler, 0, SEEK_END);
+    fileLength = ftell(fileHandler) + sizeof(size_t);
+    fseek(fileHandler, 0, SEEK_SET);
+    printf("The length of the file was %ld\n", fileLength);
+    /* Ralocks the buffer to acomendate the bigger buffer */
+    buffer = (char *) realloc(buffer, fileLength);
+    if(!buffer){
+        printf("Memmory error reading file from disk\n");
+        exit(EXIT_FAILURE);
+    }
+    /* Store the lengt of the file in the first 8 byte */
+    convert_size_t(buffer,0,fileLength);
+    /* Reads data form file in to the buffer */
+    fread(buffer + sizeof(size_t) , fileLength, 1, fileHandler);
+    fclose(fileHandler);
 
+#endif
     ingsoc_init(&toWrite);
     ingsoc_init(&toRead);
 

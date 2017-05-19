@@ -329,6 +329,13 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACK = true;
+#ifdef READ_FILE
+                if(toRead.SEQ == StartSEQ + 1){
+                    revert_size_t(toRead.data, 0, &fileLength);
+                    message = (char *) realloc(message, fileLength);
+                    printf("The length of the file is %ld\n", fileLength - sizeof(size_t));
+                }
+#endif
                 toWrite.ACKnr = toRead.SEQ;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                 printf("Sending ACK on %d with SEQ: %d\n", (int) toWrite.ACKnr, (int)toWrite.SEQ);
@@ -338,7 +345,22 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 message[PlaceInMessage] = '\0';
                 /* Writes out message with green text \e[032m */
                 printf("FIN received with SEQ: %d\n", (int)toRead.SEQ);
+#ifndef READ_FILE
                 printf("--Message was--\n[\e[032m%s \e[0m]\n", message);
+#else
+                char fileName[15];
+                size_t randomNumber = ingsoc_randomNr(2300, 40000);
+                snprintf(fileName, 15, "FILE-%ld", randomNumber);
+                printf("Created file \e[38;5;48m%s\e[0m\n", fileName);
+                fileHandler = fopen(fileName, "wb");
+                if(!fileHandler){
+                    printf("Could not create file\n");
+                    exit(EXIT_FAILURE);
+                }
+                /* Write the data to the file */
+                fwrite(message + sizeof(size_t), fileLength, 1, fileHandler);
+                printf("wrote the file to disk\n");
+#endif
                 running = 0;
                 free(message);
                 free(populated);
