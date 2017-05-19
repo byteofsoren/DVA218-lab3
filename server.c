@@ -229,10 +229,10 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
     size_t running = 1;
     size_t NrInWindow = 0;
     size_t PlaceInWindow = 0;
+    bool oldPackage = false;
     int i;
     fd_set readFdSet;
     int offset = 0;
-    //ingsoc window[windowSize];
     char *message = malloc(MAXMSG);
     memset(message, '\0', MAXMSG);
     int PlaceInMessage = 0;
@@ -268,6 +268,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
                                 if (LatestRecSeq - toRead.SEQ < 200) {
                                     state = 1;
+                                    oldPackage = true;
                                 } else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
                                     state = 1;
                                     toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
@@ -321,7 +322,10 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     }
 
                 }
-                Window[toACK].ACK = true;
+                if (oldPackage == false) {
+                    Window[toACK].ACK = true;
+                }
+                oldPackage = false;
                 ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACK = true;
