@@ -268,7 +268,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                             }
                             if (state != 1) {
 
-                                if (LatestRecSeq - toRead.SEQ < 1000) {
+                                if (LatestRecSeq - toRead.SEQ < 200) {
                                     state = 1;
                                 } else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
                                     state = 1;
@@ -294,7 +294,7 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 1:
 
                 printf("Server - Package %ld received, SEQnr: %d\n", (toRead.SEQ - StartSEQ), (int) toRead.SEQ);
-                if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false) {
+                if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false && populated[PlaceInWindow] == true) {
                     for (i = 0; i < Window[PlaceInWindow].length; i++) {
                         message[PlaceInMessage] = Window[PlaceInWindow].data[i];
                         PlaceInMessage++;
