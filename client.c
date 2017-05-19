@@ -298,12 +298,12 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         /*  Filling the new package with its message depending on the situation.
                          *  In case when the total message left is smaller than what the maximum we send we just send the rest.
                          *  Otherwise we randomise (for now between 1 and 3) how much to be sent in this package*/
-                        if (length - PlaceInMessage < 3)
+                        if (length - PlaceInMessage < (MAX_DATA - 1))
                         {
                             toWrite.length = (length - PlaceInMessage);
                         } else
                         {
-                            toWrite.length = ingsoc_randomNr(1, 3);
+                            toWrite.length = ingsoc_randomNr(1, (MAX_DATA - 1));
                         }
                         for (i = 0; i < toWrite.length; i++)
                         {

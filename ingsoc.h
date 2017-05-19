@@ -26,8 +26,8 @@
 #include <time.h>
 
 #define PORT 5555
-#define MAXMSG 1024
-#define MAX_DATA 256
+#define MAXMSG 4096
+#define MAX_DATA 32
 /*
     ___      ___
     \  \    /  /

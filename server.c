@@ -222,15 +222,13 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
 }
 void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize)
 {
-    size_t StartSEQ = LatestRecSeq + 1;
+    size_t StartSEQ = LatestRecSeq;
     ingsoc toWrite, toRead;
     int state = 0;
     size_t toACK = 0;
-    size_t startPos = 0;
     size_t running = 1;
     size_t NrInWindow = 0;
     size_t PlaceInWindow = 0;
-    //size_t endPos = startPos + windowSize;
     int i;
     fd_set readFdSet;
     int offset = 0;
