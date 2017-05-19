@@ -21,7 +21,7 @@ void ingsoc_show_error_chance(){
     ch *= 1 + ((double)CHANCE_TO_RETURN_FROM_JAIL / 100); PTEST(ch)
     ch -= 1;
     ch *= 100;
-    printf("The total chance to get an error is \e[38;5;23m\e[48;5;214m%1.2f%%\e[0m and the jail size is \e[38;5;23mm\e[48;5;214m%dst\e[0m slots\n", ch, MAX_JAIL);
+    //printf("The total chance to get an error is \e[38;5;23m\e[48;5;214m%1.2f%%\e[0m and the jail size is \e[38;5;23mm\e[48;5;214%dst\e[0m slots\n", ch, MAX_JAIL);
 }
 
 void ingsoc_init(ingsoc *insoci)
@@ -423,7 +423,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
         nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
     if( (err == 2) | (err == 1+2) | (err == 2+4)){
-        printf("The ingsoc was detained in jail\n");
+        //printf("The ingsoc was detained in jail\n");
     }else{
         /* If we did not generate any error we send the data */
         newspeak(data);

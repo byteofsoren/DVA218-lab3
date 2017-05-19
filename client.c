@@ -324,7 +324,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         /* This little sequence is just a variable used for printing package number to the user */
                         if(StartSEQ == 0)
                         {
-                            StartSEQ = toWrite.SEQ;
+                            StartSEQ = (toWrite.SEQ - 1);
                         }
                     }
                 }
