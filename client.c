@@ -389,10 +389,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                             {
                                 PlaceForAck = 0;
                             }
-                            printf("ACK recieved: %d\n", (int) toRead.ACKnr);
-							
-							/* 	This is one step later in the window and check if newer packages has been receaved (a populated that is acked)
-							 *	When the while is done the PlaceForAck should be at the spot for the oldest sent package that have not been acked.*/
+							              printf("\e[032mACK recieved\e[0m: \e[034m%d\e[0m\n", (int) toRead.ACKnr);
+                          
+                            /* 	This is one step later in the window and check if newer packages has been receaved (a populated that is acked)
+							               *	When the while is done the PlaceForAck should be at the spot for the oldest sent package that have not been acked.*/
                             while(queue[PlaceForAck].ACK == true && populated[PlaceForAck] == true)
                             {
                                 queue[PlaceForAck].ACK = false;
@@ -424,6 +424,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                                 {
                                     queue[t].ACK = true;
                                     t = PlaceForAck - 1;
+                                    printf("\e[032mACK recieved\e[0m: \e[034m%d\e[0m\n", (int) toRead.ACKnr);
                                 }
                                 t++;
                                 if(t >= windowSize)
