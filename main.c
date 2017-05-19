@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     char hostname[HOSTNAMELENGHT];
     srand(time(NULL));
     printf("Hello World!\n");
-
+    ingsoc_show_error_chance();
     if (argv[1] == NULL) {
         // assumes its a server
         printf("Starting server..\n");
