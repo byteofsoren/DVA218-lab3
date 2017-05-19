@@ -3,14 +3,26 @@
 #include "newspeak.h"
 
 #define CHANCE  (short) ingsoc_randomNr(0,100)
+#define PTEST(x) printf("%2.2f\n", x);
 #define MAX_JAIL 10
-#define CHANCE_TO_GET_CHKSUM_ERROR 10
-#define CHANCE_TO_GET_OUT_ORDER 10
+#define CHANCE_TO_GET_CHKSUM_ERROR 40
+#define CHANCE_TO_GET_OUT_ORDER 20
+#define CHANCE_TO_RETURN_FROM_JAIL 10
 //#define ERROR_MESSAGE_ON_NO_SOCKET
 //#define ERROR_MESSAGE_IN_GENERATOR
 ingsoc jail[MAX_JAIL];
 short jailer[MAX_JAIL];
 short number_of_inmates = 0;
+
+void ingsoc_show_error_chance(){
+    double ch = 0;
+    ch = 1 + ((double) CHANCE_TO_GET_CHKSUM_ERROR / 100); PTEST(ch)
+    ch *= 1 + ((double) CHANCE_TO_GET_OUT_ORDER / 100); PTEST(ch)
+    ch *= 1 + ((double)CHANCE_TO_RETURN_FROM_JAIL / 100); PTEST(ch)
+    ch -= 1;
+    ch *= 100;
+    printf("The total chance to get an error is \e[38;5;23m\e[48;5;214m%1.2f%%\e[0m and the jail size is \e[38;5;23mm\e[48;5;214m%dst\e[0m slots\n", ch, MAX_JAIL);
+}
 
 void ingsoc_init(ingsoc *insoci)
 {
@@ -332,43 +344,52 @@ short errorGenerator( ingsoc* data ){
      * in the top of the file. The return value form this function works on a
      * binary level that allow return of multiple states*/
 
-    //printf("errorGenerator \e[032mStart\e[0m\n");
+    #ifdef ERROR_MESSAGE_IN_GENERATOR
+    printf("errorGenerator \e[032mStart\e[0m\n");
+    #endif
     /* The generator have 2 different states that it need to remember between
      * executions */
     short ret = 0;
-    static short state = 0;
     char errFormat[] = "\e[1;31m"; // Placeholder for color text
-    /* Uses a static state machine to store the sate between runs */
-    if(state == 0){
-        if(CHANCE < CHANCE_TO_GET_CHKSUM_ERROR){
-            printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
-            data->cksum  = (short) ingsoc_randomNr(120,3000);
-            ret += 1;
-        }
-        /* Generate out of order
-        * Its possible randomly both send data to jail and check out data form
-        * jail. To do that we use an array of sort to mimic select  */
-        if (CHANCE < CHANCE_TO_GET_OUT_ORDER){
-            /* Send package to jail */
-            _sendToJail(data);
-            #ifdef ERROR_MESSAGE_IN_GENERATOR
-            if(_sendToJail(data)) printf("sending a ingsoc struct %sto\e[0m jail", errFormat);
-            else printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
-            #endif
-            ret += 2;
-        }
-        if(CHANCE < 20){
-            /* Return a package from jail to sender and set state 1 */
-            if(_numberInJail() > 0) ret+=4;
-            state = 1;
-        }
-    } else if( state == 1){
-        /* Package breaks out of jail and is send ed */
-        if(number_of_inmates > 0) data = _returnFromJail();
-        state = 0;
+    /* Chance is a macro defined in the head of this file, likewise is the
+     * chance to get ??? Statements */
+    if(CHANCE < CHANCE_TO_GET_CHKSUM_ERROR){
+        /* If this curers the checksum is replaced by a random number */
+        printf("%sCheck sum error on %d\e[0m\n", errFormat, (int) data->SEQ);
+        data->cksum  = (short) ingsoc_randomNr(120,3000);
+        ret += 1;
+        /* The statment above ingceses the return variable by 1.*/
     }
-
-    //printf("errorGenerator \e[033mEND\e[0m\n");
+    /* Generate out of order
+    * Its possible randomly both send data to jail and check out data form
+    * jail. To do that we use an array of sort to mimic select  */
+    if (CHANCE < CHANCE_TO_GET_OUT_ORDER){
+        /* Send package to jail */
+        _sendToJail(data);
+        #ifdef ERROR_MESSAGE_IN_GENERATOR
+        /* this is debug text that can be turned on by removing the comment
+         * line in the header that belonges to this ifdef. */
+        if(_sendToJail(data)) printf("sending a ingsoc struct %sto\e[0m jail", errFormat);
+        else printf("could %snot\e[0m send ingsoc struct to jail because jail is full", errFormat);
+        #endif
+        ret += 2;
+    }
+    if(CHANCE < CHANCE_TO_RETURN_FROM_JAIL){
+        /* Return a package from jail to sender and set state 1 */
+        if(_numberInJail() > 0) ret+=4;
+    }
+    #ifdef ERROR_MESSAGE_IN_GENERATOR
+    printf("errorGenerator \e[033mEND\e[0m\n");
+    #endif
+    /* Based on what type of error the function generated we expect to return
+     * a serten set of return values. For example
+     * ret = 1 then only checksum error have occurred
+     * ret = 2 then we have data sent to jail
+     * ret = 3 now we have both 1 and 2 occurred
+     * ret = 4 A package returns from jail.
+     * ret = 5 then 4 and 1 happens
+     * ret = 6 4 and 2 happened.
+     * ret = 7 4 and 2 and 1 happened */
     return ret;
 }
 
@@ -390,21 +411,21 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
 
     /* Error generator that simulate errors
      * Read the error generator function to understand how that one works
-     * But it returns a value that corisponds to a certain type of error. */
+     * But it returns a value that corresponds to a certain type of error. */
 
     err = errorGenerator(data);
-    if( (err == 4) | (err == 4) | (err == 1+4)){
+    if( (err == 4) | (err == 2 + 4) | (err == 1+4)){
         /* Breakes a old data out of jail */
         ingsoc outofjail;
-        errorGenerator(&outofjail);
-        //printf("Breaking out of jail\n");
+        if(number_of_inmates > 0) outofjail=  *_returnFromJail();
         newspeak(&outofjail);
+        /* Sends the package that was broken of of jail */
         nOfBytes = sendto(fileDescriptor, &outofjail, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
     if( (err == 2) | (err == 1+2) | (err == 2+4)){
-        //printf("Didn \e[031mnot\e[0m send data beause it got detained in jail, err=%d\n", err);
-        printf(".\n");
+        printf("The ingsoc was detained in jail\n");
     }else{
+        /* If we did not generate any error we send the data */
         newspeak(data);
         nOfBytes = sendto(fileDescriptor, data, length, 0, (struct sockaddr*)host_info,sizeof(*host_info));
     }
