@@ -16,9 +16,9 @@ short number_of_inmates = 0;
 
 void ingsoc_show_error_chance(){
     double ch = 0;
-    ch = 1 + ((double) CHANCE_TO_GET_CHKSUM_ERROR / 100); PTEST(ch)
-    ch *= 1 + ((double) CHANCE_TO_GET_OUT_ORDER / 100); PTEST(ch)
-    ch *= 1 + ((double)CHANCE_TO_RETURN_FROM_JAIL / 100); PTEST(ch)
+    ch = 1 + ((double) CHANCE_TO_GET_CHKSUM_ERROR / 100);
+    ch *= 1 + ((double) CHANCE_TO_GET_OUT_ORDER / 100);
+    ch *= 1 + ((double)CHANCE_TO_RETURN_FROM_JAIL / 100);
     ch -= 1;
     ch *= 100;
     printf("The total chance to get an error is \e[38;5;23m\e[48;5;214m%1.2f%%\e[0m and the jail size is \e[38;5;23mm\e[48;5;214m%dst\e[0m slots\n", ch, MAX_JAIL);
