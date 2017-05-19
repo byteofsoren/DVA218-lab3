@@ -253,8 +253,9 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
     /*This do is for the running of Client Sliding Window.*/
     do {
-        /*  Goes through all window places in sliding window to check if some packet that have been sent
-         *  needs a timout. So a populated place that has not received an ACK*/
+        /*  Goes through all window places in sliding window to check if some packet that have been sent needs a timout. 
+		 *	So a populated place that has not received an ACK in a long while will be sent to state 3 for a resend
+		 * 	The if statement around is a protection when senting a new package because the timestamp is set in state 1 and this could trigger on that package otherwise*/
         if(state != 1)
         {
             for (i = 0; i < windowSize; i++) {
@@ -287,7 +288,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 if(NrInWindow < windowSize && populated[PlaceInWindow] == false)
                 {
                     state = 1;
-
+					/*	When the PlaceInMessage is at the end the last character will be a \0 and a closing of Sliding window is done at state 4*/
                     if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
                     {
                         state = 4;
@@ -297,12 +298,12 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         /*  Filling the new package with its message depending on the situation.
                          *  In case when the total message left is smaller than what the maximum we send we just send the rest.
                          *  Otherwise we randomise (for now between 1 and 3) how much to be sent in this package*/
-                        if (length - PlaceInMessage < 3)
+                        if (length - PlaceInMessage < (MAX_DATA - 1))
                         {
                             toWrite.length = (length - PlaceInMessage);
                         } else
                         {
-                            toWrite.length = ingsoc_randomNr(1, 3);
+                            toWrite.length = ingsoc_randomNr(1, (MAX_DATA - 1));
                         }
                         for (i = 0; i < toWrite.length; i++)
                         {
@@ -317,7 +318,6 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                         toWrite.data[toWrite.length] = '\0';
                         ingsoc_seqnr(&toWrite);
                         queue[PlaceInWindow] = toWrite;
-                        //sent[PlaceInWindow] = clock();
                         populated[PlaceInWindow] = true;
                         NrInWindow++;
 
@@ -378,9 +378,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     if(ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0)
                     {
 						/*	The message handled if it contains an ack and a corresponding ACKnr that is the same as the SEQ of the sent message. 
-						 * 	The sent message we are talking about is the one with the oldest SEQ since that would be the one we are expecting to come as soon as possible*/
+						 * 	The sent message we're talking about is the one with the oldest SEQ (that has not been ACKed)*/
                         if(toRead.ACK == true && toRead.ACKnr == queue[PlaceForAck].SEQ)
                         {
+							/*	removes the package from the populated list and reduces the total packages nr in the window and moves the next expected one step*/
                             NrInWindow--;
                             populated[PlaceForAck] = false;
                             PlaceForAck++;
@@ -388,8 +389,10 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                             {
                                 PlaceForAck = 0;
                             }
-                            printf("\e[032mACK recieved\e[0m: \e[034m%d\e[0m\n", (int) toRead.ACKnr);
-
+							              printf("\e[032mACK recieved\e[0m: \e[034m%d\e[0m\n", (int) toRead.ACKnr);
+                          
+                            /* 	This is one step later in the window and check if newer packages has been receaved (a populated that is acked)
+							               *	When the while is done the PlaceForAck should be at the spot for the oldest sent package that have not been acked.*/
                             while(queue[PlaceForAck].ACK == true && populated[PlaceForAck] == true)
                             {
                                 queue[PlaceForAck].ACK = false;
@@ -402,8 +405,14 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                                 }
                             }
                         }
+						/*	The above was for when the read package was the next expecting one (ack for the oldest package sent
+						 *	Here packages that are further into the window are marked (when ack is receaved on them) so no resends is done on them
+						 *	The last part of the above if de-populates this ones when the window catch up.*/
                         else
                         {
+							/*	From the spot one after the expected ack tor receive this goes through one lap until it is back at the expected ack (PlaceForAck)
+							 *	When the read package is found in the sent list (queue) that is marked by the ACK flag since that flag is not used by client in SW
+							 *	If that ack does not have any package in our window that it is ACKing it is just dropped. The program is then sent back to state 0*/
                             t = PlaceForAck + 1;
                             if(t >= windowSize)
                             {
@@ -432,6 +441,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
 
             case 3:
+				/*	Resends the package and updates the clock. Comes here by the first if sequence*/
                 ingsoc_writeMessage(*fileDescriptor, &queue[PackToResend], sizeof(ingsoc), hostInfo);
                 printf("Client - Package %ld resent , SEQ nr: %d\n", (queue[PackToResend].SEQ - StartSEQ), (int) (queue[PackToResend]).SEQ);
                 sent[PackToResend] = clock();
@@ -440,7 +450,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
 
             case 4:
-
+				/*	The end case. Free all dynamic variables and closes the sliding window part*/
                 printf("Client - No more packages to send");
                 running = 0;
                 free(buffer);
