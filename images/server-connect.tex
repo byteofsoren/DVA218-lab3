@@ -3,12 +3,12 @@
 init/.style={circle, draw=black!100, very thick, minimum size=7mm,node distance=2cm},
 state_split/.style={circle split, draw=gray!100, thick, minimum size=7mm,node distance=3cm},
 state/.style={circle, draw=gray!100, thick, minimum size=7mm,node distance=2cm},
-final/.style={circle, draw=black!60,  ultra thick, minimum size=10mm,node distance=23mm}
+final/.style={circle,double, draw=black!60,  ultra thick, minimum size=10mm,node distance=23mm}
 ]
 %Nodes
 \node[init]     (start)                         {0};
 \node           (init)        [left of=start]     {};
-\node[state_split]    (synx)      [right of=start]    {ack=x\nodepart{lower}seq=y};
+\node[state_split]    (synx)      [right of=start]    {ack+syn=x\nodepart{lower}seq=y};
 \node[final]    (end)       [right of=synx]     {1};
 
 
@@ -20,7 +20,7 @@ final/.style={circle, draw=black!60,  ultra thick, minimum size=10mm,node distan
 \draw[dotted, ->] (init.east) -- (start.west);
 \path[->] 
           (start)   edge[bend left]     node[above]     {syn=x}     (synx)
-          (synx)    edge[bend left]     node[below]     {reject}    (start)
+          (synx)    edge[bend left]     node[below]     {reject/n timeout}    (start)
           (synx)    edge[loop above]    node            {timeout}   (synx)
           (synx)    edge[loop below]    node            {ack=!y}     (synx)
           (synx)    edge[bend left]     node[above]     {ack=y}     (end);

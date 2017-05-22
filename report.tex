@@ -79,11 +79,12 @@ ${}$\hspace{5em}
 
 %  |~~~Start writing here----------------
 %  |--->
+
 \section{Introduction}
 This is the first part of two in an assignment with the goal to create a reliable and efficient transport protocol on top of UDP. This first part contains state-machines for the different modules we will be implementing later in the code. There are three different modules, a connection with a three-way handshake, a sliding window protocol with selective acknowledgements and a teardown protocol. Each module will be described with two state machines, one for the sender (client) and one for the receiver (server).
 
 \section{State machines}
-Below we have six different Moore-styled state machines with figures and text describing how our modules we will implement, work.
+Below we have six different Moore-styled state machines with figures and text describing how our modules will be implemented.
 
 \subsection{Three-way handshake - Client}
   
@@ -108,9 +109,12 @@ Here we have a problem, if all the disconnection requests sent from the initiali
 However when the host receives the dr it will send a dr back and wait for an ACK, when it receives an ACK back or after n timeouts it will proceed to disconnect. 
 \subsection{Sliding window sender state machine}
 \input{./images/swin-send.tex}
-For the sliding windows itself it starts of in the idle state. If there is free space at the receiver end packages will be sent. If and when the ACK comes back nothing really happens. Sending more packages is based on having space on the receiver end and the ACK have information about how much space there is on the receiver end. If no ACK (selective) arrives on a sent package the package will be resent. There could be the possibility to receive a NACK to resend a specific. If a package is lost the receiver will still ACK packages after the lost one so only the lost package will be relly affected. 
-\subsection{Sliding windew resiver satate machine}
+\\For the sliding windows itself it starts of in the idle state. If there is free space in the window, packages will be sent. If and when the ACK comes back nothing really happens in the case of input and output. Though the ack will be stored together with the sent message so knowing which packages the program knows has been received by the receiver side. There will also be movement in the windows size and there could be the possibility to receive a NACK to resend a package but that will probably not be used. If a package is lost the receiver will still ACK packages after the lost one so only the lost package will be really affected. If no ACK (selective) arrives on a sent package the specific package will be resent after that package is timed out.
+\subsection{Sliding window receiver state machine}
 \input{./images/swin-recive.tex}
+\\The receiver have two main states, one idle state with no output and another state that sends ACK. When a package is received it goes to the other state that sends back an ACK for that package. This state will be rerun every time a new good package is arriving and ACK those packages. If a corrupt package is received there was a idea to nack that one but with corrupted information about the package itself that will not be possible. So if a corrupt package is received it will just be ignored and let the server timeout that package and resend it. It would in this case not need its own state so the \textbf{NACK/NULL} would not exist and the arrows would just go to idle but the state is there for illustration. If by some reason the receiver buffer was full when the last ACK was sent the server will not send any new packages. So if no packages has been received for a while a window refresh will be sent back to the sender to make sure the sender knows that there is free space. 
 
+
+aoeu
 
 \end{document}
