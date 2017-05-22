@@ -5,9 +5,9 @@
 #define CHANCE  (short) ingsoc_randomNr(0,100)
 #define PTEST(x) printf("%2.2f\n", x);
 #define MAX_JAIL 10
-#define CHANCE_TO_GET_CHKSUM_ERROR 40
-#define CHANCE_TO_GET_OUT_ORDER 20
-#define CHANCE_TO_RETURN_FROM_JAIL 10
+#define CHANCE_TO_GET_CHKSUM_ERROR 20
+#define CHANCE_TO_GET_OUT_ORDER 10
+#define CHANCE_TO_RETURN_FROM_JAIL 5
 //#define ERROR_MESSAGE_ON_NO_SOCKET
 //#define ERROR_MESSAGE_IN_GENERATOR
 ingsoc jail[MAX_JAIL];
@@ -245,7 +245,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
      * function that called it form the beginning. The data pointer in
      * the argument section is used as an output, The return value form this
      * function is zero for success or -1 for no package received. */
-
+    static size_t oposite_ID = 0;
     unsigned nOfBytes = sizeof(*host_info);
     int dataRead = 0, sentChSum = 0;
     /* First we try to read data form socket and store the data in the data
@@ -258,6 +258,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
         perror("readMessage - Could not READ data");
         return -1;
     }
+
     /* Checksum calculation. The check sum is calculated by first convert the
      * entire struct to an char array and then preform a summarisation of the
      * chars. For long messages that should be pretty secure way to solve the
@@ -278,7 +279,18 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     data->cksum = ingsoc_cksum(buffer, buffer_size);
     if(data->cksum == sentChSum)
     {
-        return 0;
+        if(oposite_ID == 0)
+        {
+            oposite_ID = data->clientID;
+        }
+        else if(data->clientID != oposite_ID)
+        {
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }
     }
     else
     {
