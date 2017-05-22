@@ -222,23 +222,22 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
 }
 void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostInfo, int windowSize)
 {
-    size_t StartSEQ = LatestRecSeq + 1;
+    size_t StartSEQ = LatestRecSeq;	//used for printing packet nr nothing more
     ingsoc toWrite, toRead;
     int state = 0;
-    size_t toACK = 0;
-    size_t startPos = 0;
+    size_t toACK = 0;		//The place in the window of the current packet. 
     size_t running = 1;
-    size_t NrInWindow = 0;
-    size_t PlaceInWindow = 0;
-    //size_t endPos = startPos + windowSize;
+    size_t NrInWindow = 0;		//amount of packets in the window
+    size_t PlaceInWindow = 0;	//The place in the window of the oldest packet. (next in the sequence). LastRecSeq is about the same here but for the SEQ nr itsealf
+    bool oldPackage = false;	//stupid variable for solving a stupid problem with the last ack from client in connect coming as a ghost in SW. Easiest way to solve it
     int i;
     fd_set readFdSet;
     int offset = 0;
-    //ingsoc window[windowSize];
     char *message = malloc(MAXMSG);
     memset(message, '\0', MAXMSG);
     int PlaceInMessage = 0;
     ingsoc *Window = malloc(windowSize * sizeof(ingsoc));
+
     bool *populated = malloc(windowSize * sizeof(bool));
     for (i = 0; i < windowSize; i++) {
         populated[i] = false;
@@ -250,7 +249,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
         switch (state) {
 
             case 0:
-
+				/*	case 0 do the reading and sends it of to case 1 for answering with an ack if needed.
+				 *	First of there is standard select + FD_ISSET for checking message on our port 5555*/
                 readFdSet = *activeFdSet;
                 if (select(FD_SETSIZE, &readFdSet, NULL, NULL, NULL) < 0)
                     perror("Server - Select failure");
@@ -258,31 +258,47 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 if (FD_ISSET(*fileDescriptor, &readFdSet)) {
                     /* Reads the package from client */
                     if (ingsoc_readMessage(*fileDescriptor, &toRead, hostInfo) == 0) {
+						/*	When the fin message comes we move on to case 8 (jump in numbers I know) for print of message and handover to teardown*/
                         if (toRead.FIN == true) {
                             state = 8;
                         } else {
+							/*	When there is no fin message firstly we're checking on old places in the window is the read message is a one in the window
+							 *	Happen when the ack is lost and resend is done on the client side. This is packets with a later SEQ than LatestRecSeq*/
                             for (i = 0; i < windowSize; i++) {
                                 if (toRead.SEQ == Window[i].SEQ && populated[i] == true) {
                                     state = 1;
                                 }
                             }
+							/*	If the message was not active in the window*/
                             if (state != 1) {
-
-                                if (LatestRecSeq - toRead.SEQ < 1000) {
+								/*	Firstly if the SEQ number is a old one a new ack is sent. Packets with Older (lower) SEQ than LatestRecSeq
+								 *	oldPackage is set since there is no spot in the window for that package and the row to set the Ack trigg should not be done*/
+                                if (LatestRecSeq - toRead.SEQ < 200) {
                                     state = 1;
+                                    oldPackage = true;
+								
+								/*	Here is the main function for new packages. Will run if the packet offset from last acked fit in the empty window space.
+								 *  This should be a problem if 1,3,4,5,6,7,8 arrives since the the empty space at nr 4 is 5. When the 5 arrives the free space is 4.
+								 *	But there is no problem and the window is filled.  */
                                 } else if (toRead.SEQ - LatestRecSeq <= windowSize - NrInWindow) {
                                     state = 1;
+                                    /*  The place in the window for the packet. Put at the right spot directly*/
                                     toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
                                     if ((int) toACK >= windowSize) {
                                         toACK -= windowSize;
                                     }
+                                    /*  Put in the packet into the window and populated trigger is added*/
                                     Window[toACK] = toRead;
                                     populated[toACK] = true;
+                                    /*  If the packet have the same place in the window as the one wanted. (the oldest SEQ packet)*/
                                     if (toACK == PlaceInWindow) {
                                         LatestRecSeq = toRead.SEQ;
-                                    } else {
+                                    }
+                                    /*  Otherwise the packet in this case will be a SEQ further into the future and offset helps noting this for later*/
+                                    else {
                                         offset++;
                                     }
+                                    /*  One more packet in the window is active*/
                                     NrInWindow++;
                                 }
                             }
@@ -294,11 +310,14 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 1:
 
                 printf("Server - Package %ld received, SEQnr: %d\n", (toRead.SEQ - StartSEQ), (int) toRead.SEQ);
-                if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false) {
+				/*	 When the packet is the next in the sequence*/
+                if (toACK == PlaceInWindow && Window[PlaceInWindow].ACK == false && populated[PlaceInWindow] == true) {
+					/*	Putting the data in the packet into the message buffer*/
                     for (i = 0; i < Window[PlaceInWindow].length; i++) {
                         message[PlaceInMessage] = Window[PlaceInWindow].data[i];
                         PlaceInMessage++;
                     }
+					/*	Tells that the space is free to use and that the new latest packet (in the sequence) is this one. */
                     populated[PlaceInWindow] = false;
                     LatestRecSeq = Window[PlaceInWindow].SEQ;
                     NrInWindow--;
@@ -306,7 +325,8 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     if ((int) PlaceInWindow >= windowSize) {
                         PlaceInWindow = 0;
                     }
-
+					/* If there was packages that were acked before that and is the next one in the sequence they are put in the message buffer. 
+					 * Does this one at a time as long as the packet that meets the requierments then moves on*/
                     while (populated[PlaceInWindow] == true && offset > 0) {
                         populated[PlaceInWindow] = false;
                         LatestRecSeq = Window[PlaceInWindow].SEQ;
@@ -323,16 +343,24 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                     }
 
                 }
-                Window[toACK].ACK = true;
+				/* A safty for old package that is older than the window (they will NOT run this). They are not suppose to be placed in the window*/
+                if (oldPackage == false) {
+					/*	Put a trigger on the current packet so if it was not in the right order it is fixed above later when the blocking packet arrive*/
+                    Window[toACK].ACK = true;
+                }
+                oldPackage = false;
+				
+				/*	Sends a responce ack and goes back to the "waiting for new packet state" (state 0)*/
                 ingsoc_init(&toWrite);
                 ingsoc_seqnr(&toWrite);
                 toWrite.ACK = true;
                 toWrite.ACKnr = toRead.SEQ;
                 ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
-                printf("Sending ACK on %d\n", (int) toWrite.ACKnr);
+                printf("Sending ACK on %d with SEQ: %d\n", (int) toWrite.ACKnr, (int)toWrite.SEQ);
                 state = 0;
                 break;
             case 8:
+				/*	The ender of the server. It finnish the message with a \0, print the total mesage sent and free all dynamic variables. Then disconnect will happen*/
                 message[PlaceInMessage] = '\0';
                 /* Writes out message with green text \e[032m */
                 printf("FIN received with SEQ: %d\n", (int)toRead.SEQ);

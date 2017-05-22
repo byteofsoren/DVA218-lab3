@@ -26,8 +26,8 @@
 #include <time.h>
 
 #define PORT 5555
-#define MAXMSG 1024
-#define MAX_DATA 256
+#define MAXMSG 4096
+#define MAX_DATA 32
 /*
     ___      ___
     \  \    /  /
@@ -46,6 +46,7 @@ typedef struct{
 
 }ingsoc;
 
+void ingsoc_show_error_chance();
 void ingsoc_init(ingsoc *ingsoc_i);
 void ingsoc_seqnr(ingsoc *in);
 int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info);
