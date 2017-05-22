@@ -133,7 +133,7 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                     /* When the final ACK is sent, we look in the FD again one more time to handle
                      * eventual duplicate packages that might come in, */
                     struct timeval timer;
-                    timer.tv_sec = 5;
+                    timer.tv_sec = 1;
                     timer.tv_usec = 0;
                     printf("Client - Reading socket in final state\n");
                     readFdSet = *activeFdSet;
@@ -195,7 +195,7 @@ int client_dis_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr
 
         /* select is looking for changes in FD for 5 sec before calling timeout
          * With each timeout it subtracts one from the counter down to zero */
-        timer.tv_sec = 5;
+        timer.tv_sec = 1;
         timer.tv_usec = 0;
         readFdSet = *activeFdSet;
         int stemp = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer);
@@ -300,9 +300,17 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                 {
                     state = 1;
 					/*	When the PlaceInMessage is at the end the last character will be a \0 and a closing of Sliding window is done at state 4*/
-                    if(buffer[PlaceInMessage] == '\0' && NrInWindow == 0)
+                    if(buffer[PlaceInMessage] == '\0')
                     {
-                        state = 4;
+                        if(NrInWindow == 0)
+                        {
+                            state = 4;
+
+                        }
+                        else
+                        {
+                            state = 0;
+                        }
                     }
                     else
                     {
@@ -362,7 +370,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 				 *	Then a nice message is sent. The first variable in that is the package number where StartSEQ is the first sent package*/
                 ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(ingsoc), hostInfo);
                 printf("Client - Package %ld sent, SEQ nr: %d\n", (queue[PlaceInWindow].SEQ - StartSEQ), (int) (queue[PlaceInWindow]).SEQ);
-				
+				printf("%s\n", toWrite.data);
 				/*	The sent package is timestimestamped and the window is moved one more spot (or to the begining if the end of the windows size is reached)
 				 *	Then its is time to go back to the 0 state to create a new package*/
                 sent[PlaceInWindow] = clock();
@@ -379,7 +387,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 2:
                 readFdSet = *activeFdSet;
                 /* Looking for changes in FD */
-                timer.tv_sec = 5;
+                timer.tv_sec = 1;
                 timer.tv_usec = 0;
                 if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                     perror("Client - Select failure");

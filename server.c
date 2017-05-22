@@ -83,7 +83,7 @@ void server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr
         printf("Server - FIN+ACK sent to client with SEQ: %d Answer to: %d\n", (int) toWrite.SEQ, (int) toWrite.ACKnr);
 
         /* Setting a timer for select to wait before calling a timeout */
-        timer.tv_sec = 3;
+        timer.tv_sec = 1;
         timer.tv_usec = 0;
         readFdSet = *activeFdSet;
         /* Looking for changes in FD */
@@ -172,8 +172,8 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                     ingsoc_writeMessage(*fileDescriptor, &toWrite, sizeof(toWrite), hostInfo);
                     printf("Server - ACK + SYN sent on %d with SEQ: %d\n",(int)toWrite.ACKnr, (int)toWrite.SEQ);
                     /* set timer to tell select for how long to look for a change before calling a timeout */
-                    timer.tv_sec = 1;
-                    timer.tv_usec = 0;
+                    timer.tv_sec = 0;
+                    timer.tv_usec = 300000;
                     readFdSet = *activeFdSet;
                     /* Looks for changes in FD */
                     if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
@@ -203,6 +203,8 @@ int Threeway(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostI
                     } else {
                         printf("Timeout\n");
                     }
+                    if(n > 3)
+                        exit(EXIT_FAILURE);
                 } while (state == 1 && n <= 3);
 
                 break;
