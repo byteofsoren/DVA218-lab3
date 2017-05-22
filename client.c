@@ -370,7 +370,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 				 *	Then a nice message is sent. The first variable in that is the package number where StartSEQ is the first sent package*/
                 ingsoc_writeMessage(*fileDescriptor, &queue[PlaceInWindow], sizeof(ingsoc), hostInfo);
                 printf("Client - Package %ld sent, SEQ nr: %d\n", (queue[PlaceInWindow].SEQ - StartSEQ), (int) (queue[PlaceInWindow]).SEQ);
-				printf("%s\n", toWrite.data);
+				//printf("%s\n", toWrite.data);
 				/*	The sent package is timestimestamped and the window is moved one more spot (or to the begining if the end of the windows size is reached)
 				 *	Then its is time to go back to the 0 state to create a new package*/
                 sent[PlaceInWindow] = clock();
@@ -470,7 +470,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
             case 4:
 				/*	The end case. Free all dynamic variables and closes the sliding window part*/
-                printf("Client - No more packages to send");
+                printf("Client - No more packages to send\n");
                 running = 0;
                 free(buffer);
                 free(queue);
