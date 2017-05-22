@@ -3,13 +3,13 @@
 init/.style={circle, draw=black!100, very thick, minimum size=7mm,node distance=2cm},
 state_split/.style={circle split, draw=gray!100, thick, minimum size=7mm,node distance=2cm},
 state/.style={circle, draw=gray!100, thick, minimum size=7mm,node distance=2cm},
-final/.style={circle, draw=black!60,  ultra thick, minimum size=10mm,node distance=23mm}
+final/.style={circle,double, draw=black!60,  ultra thick, minimum size=10mm,node distance=23mm}
 ]
 %Nodes
 \node[init]         (start)                         {0};
 \node               (em)        [left of=start]     {};
 \node[state]        (send_dr)   [right of=start]    {dr};
-\node[final]        (dc_ack)    [right of=send_dr]  {dr, ack};
+\node[final]        (dc_ack)    [right of=send_dr]  {ack};
 
 
 %Lines
@@ -19,7 +19,7 @@ final/.style={circle, draw=black!60,  ultra thick, minimum size=10mm,node distan
 \draw[dotted, ->] (em.east) -- (start.west);
 \path[->] 
 (start)   edge                   node [above]   {init}      (send_dr)
-(send_dr) edge [bend left]       node [above]   {dr}        (dc_ack)
-(send_dr) edge [bend right]      node [below]   {n timeouts}  (dc_ack)
+(send_dr) edge [bend left]       node [above]   {dr + ack}        (dc_ack)
+(send_dr) edge [bend right]      node [below]   {3 timeouts}  (dc_ack)
 (send_dr) edge [loop above]      node           {timeout}   (send_dr);
 \end{tikzpicture}
