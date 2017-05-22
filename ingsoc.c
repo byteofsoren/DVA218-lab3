@@ -28,8 +28,13 @@ void ingsoc_init(ingsoc *insoci)
 {
     /* This function is used to initialize the ingsock structure
      * to default values.*/
+    static size_t ID = 0;
+    if (ID = 0)
+    {
+        ID = ingsoc_randomNr(10, 123456789);
+    }
     insoci->SYN=false;
-    insoci->clientID = getpid();
+    insoci->clientID = ID;
     insoci->FIN=false;
     insoci->RES=false;
     insoci->ACK=false;
@@ -287,10 +292,8 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
         {
             return -1;
         }
-        else
-        {
-            return 0;
-        }
+        return 0;
+
     }
     else
     {
