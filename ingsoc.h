@@ -27,7 +27,7 @@
 
 #define PORT 5555
 #define MAXMSG 4096
-#define MAX_DATA 32
+#define MAX_DATA 5
 /*
     ___      ___
     \  \    /  /
