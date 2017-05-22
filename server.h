@@ -7,5 +7,5 @@ void serverMain();
 
 #endif /* ifndef  */
 
-void Server_Main(int arg);
+void Server_Main();
 

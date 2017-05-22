@@ -73,7 +73,8 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
 
     while (running) {
         switch (state) {
-            /* State 0 -  */
+            /* State 0 - Send the SYN package to server and wait for SYN+ACK
+             * resend if something gets lost, 5 times */
             case 0:
                 /* Starting the 3 way handshake by initializing the struct to send, setting all
                  * values to false and zero then adding a SEQ nr */
@@ -82,19 +83,22 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                 sSyn.length = windowSize;
                 ingsoc_seqnr(&sSyn);
 
-                while (counter > 0 && state == 0) {
 
+                while (counter > 0 && state == 0) {
+                    /* Sending our package to the server */
                     ingsoc_writeMessage(*fileDescriptor, &sSyn, sizeof(sSyn), hostInfo);
                     printf("Client - SYN sent with SEQ nr: %d\n", (int) sSyn.SEQ);
                     timer.tv_sec = 1;
                     timer.tv_usec = 0;
                     readFdSet = *activeFdSet;
+                    /* Looking for changes in FD */
                     int t = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer);
                     if (t == -1)
                         perror("Client - Select failed");
 
                     if (FD_ISSET(*fileDescriptor, &readFdSet)) {
-
+                        /* When receving ACK + SYN, we go to the next state to send
+                         * the final ACK */
                         if (ingsoc_readMessage(*fileDescriptor, &rAck, hostInfo) == 0) {
                             if (rAck.ACK == true && rAck.SYN == true && rAck.ACKnr == sSyn.SEQ) {
                                 printf("Client - ACK+SYN received for %d with SEQ nr: %d\n", (int) rAck.ACKnr, (int) rAck.SEQ);
@@ -106,6 +110,8 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                             }
                         }
                     } else {
+                        /* If the SYN gets lost or we dont receive SYN+ACK we will resend the SYN,
+                         * we will do this 5 times before quitting */
                         printf("\n------------------\nTime out counter is now \e[38;5;162m%d\e[0m\n", counter);
                         counter--;
                         state = 0;
@@ -113,6 +119,7 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                     }
                 }
                 break;
+                /* State 1 - SYN+ACK is received so we send the final ACK to server */
             case 1: {
                 ingsoc_init(&sACK);
                 ingsoc_seqnr(&sACK);
@@ -122,6 +129,9 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                 do {
                     printf("Client - ACK sent on %d with SEQ nr: %d\n", (int) rAck.SEQ, (int) sACK.SEQ);
                     ingsoc_writeMessage(*fileDescriptor, &sACK, sizeof(sACK), hostInfo);
+
+                    /* When the final ACK is sent, we look in the FD again one more time to handle
+                     * eventual duplicate packages that might come in, */
                     struct timeval timer;
                     timer.tv_sec = 1;
                     timer.tv_usec = 0;
@@ -136,9 +146,10 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                         ingsoc rACK;
                         ingsoc_readMessage(*fileDescriptor, &rACK, hostInfo);
                         if (rACK.ACK == true && rACK.SYN == true && rACK.ACKnr == sSyn.SEQ) {
-                            printf("Client - Received ACK + SYN in final state\n");
+                            printf("Client - Received duplicate ACK+SYN in final state\n");
                         }
                     } else {
+                        /* No duplicate packages has come in so the threeway handshake is done! */
                         /* When running goes to zero, it exists the loop and stops the function */
                         running = 0;
                         printf("Client - Threeway handshake successful\n");

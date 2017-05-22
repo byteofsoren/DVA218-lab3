@@ -377,23 +377,18 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
 
     } while (running == 1);
 }
-void Server_Main(int arg){
-    printf("arg=%d\n",arg);
+void Server_Main(){
+
     int fileDescriptor;
     struct sockaddr_in  hostInfo;
     int windowSize = 0;
-    // int nOfBytes = 0;
-    //char buffer[MAXMSG];
-    //fd_set readFdSet;
+
+    /* Create a socket and set it up to accept connections */
+    /* Initialize the set of active sockets */
     fd_set activeFdSet; /* Used by select */
     fileDescriptor = make_Socket4(PORT);
     FD_ZERO(&activeFdSet);
     FD_SET(fileDescriptor,&activeFdSet);
-/* Create a socket and set it up to accept connections */
-
-    /* Initialize the set of active sockets */
-
-    //server_disconnect(&sock, &activeFdSet, &hostInfo);
 
     printf("\n[waiting for connections...]\n");
 
