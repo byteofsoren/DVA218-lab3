@@ -83,7 +83,7 @@ void server_disconnect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr
         printf("Server - FIN+ACK sent to client with SEQ: %d Answer to: %d\n", (int) toWrite.SEQ, (int) toWrite.ACKnr);
 
         /* Setting a timer for select to wait before calling a timeout */
-        timer.tv_sec = 3;
+        timer.tv_sec = 1;
         timer.tv_usec = 0;
         readFdSet = *activeFdSet;
         /* Looking for changes in FD */

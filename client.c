@@ -123,7 +123,7 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
                     printf("Client - ACK sent on %d with SEQ nr: %d\n", (int) rAck.SEQ, (int) sACK.SEQ);
                     ingsoc_writeMessage(*fileDescriptor, &sACK, sizeof(sACK), hostInfo);
                     struct timeval timer;
-                    timer.tv_sec = 5;
+                    timer.tv_sec = 1;
                     timer.tv_usec = 0;
                     printf("Client - Reading socket in final state\n");
                     readFdSet = *activeFdSet;
@@ -184,7 +184,7 @@ int client_dis_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr
 
         /* select is looking for changes in FD for 5 sec before calling timeout
          * With each timeout it subtracts one from the counter down to zero */
-        timer.tv_sec = 5;
+        timer.tv_sec = 1;
         timer.tv_usec = 0;
         readFdSet = *activeFdSet;
         int stemp = select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer);
@@ -376,7 +376,7 @@ void SWSend(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
             case 2:
                 readFdSet = *activeFdSet;
                 /* Looking for changes in FD */
-                timer.tv_sec = 5;
+                timer.tv_sec = 1;
                 timer.tv_usec = 0;
                 if (select(FD_SETSIZE, &readFdSet, NULL, NULL, &timer) < 0)
                     perror("Client - Select failure");
