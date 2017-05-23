@@ -26,7 +26,8 @@
 #include <time.h>
 
 #define PORT 5555
-#define MAXMSG 512
+#define MAXMSG 4096
+#define MAX_DATA 5
 /*
     ___      ___
     \  \    /  /
@@ -40,13 +41,14 @@ typedef struct{
 
     bool ACK, FIN, RES, SYN;
     size_t ACKnr, SEQ, clientID;
+    unsigned short cksum, length;
+    char data[MAX_DATA];
 
-    short cksum, length;
-    char data[256];
 
 
 }ingsoc;
 
+void ingsoc_show_error_chance();
 void ingsoc_init(ingsoc *ingsoc_i);
 void ingsoc_pretty_print(ingsoc *s);
 void ingsoc_seqnr(ingsoc *in);
