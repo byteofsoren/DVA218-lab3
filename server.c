@@ -279,10 +279,9 @@ void SWRecv(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in *hostIn
                                     state = 1;
                                     oldPackage = true;
 								
-								/*	Here is the main function for new packages. Will run if the packet offset from last acked fit in the empty window space.
-								 *  This should be a problem if 1,3,4,5,6,7,8 arrives since the the empty space at nr 4 is 5. When the 5 arrives the free space is 4.
-								 *	But there is no problem and the window is filled.  */
-                                } else if (toRead.SEQ - LatestRecSeq <= windowSize /*- NrInWindow*/) {
+								/*	Here is the main function for new packages. Will run if the packet offset from last acked fit in the window space.
+								 *    */
+                                } else if (toRead.SEQ - LatestRecSeq <= windowSize) {
                                     state = 1;
                                     /*  The place in the window for the packet. Put at the right spot directly*/
                                     toACK = PlaceInWindow + (toRead.SEQ - LatestRecSeq - 1);
