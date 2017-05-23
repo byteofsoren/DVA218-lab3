@@ -76,9 +76,12 @@ int client_connect(int *fileDescriptor, fd_set *activeFdSet, struct sockaddr_in 
             /* State 0 - Send the SYN package to server and wait for SYN+ACK
              * resend if something gets lost, 5 times */
             case 0:
+
                 /* Starting the 3 way handshake by initializing the struct to send, setting all
                  * values to false and zero then adding a SEQ nr */
+
                 ingsoc_init(&sSyn);
+
                 sSyn.SYN = true;
                 sSyn.length = windowSize;
                 ingsoc_seqnr(&sSyn);

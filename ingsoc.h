@@ -44,12 +44,17 @@ typedef struct{
     unsigned short cksum, length;
     char data[MAX_DATA];
 
+
+
 }ingsoc;
 
 void ingsoc_show_error_chance();
 void ingsoc_init(ingsoc *ingsoc_i);
+void ingsoc_pretty_print(ingsoc *s);
 void ingsoc_seqnr(ingsoc *in);
+
 int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info);
+
 void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct sockaddr_in *host_info);
 int checkSum(void *data, int length, int error);
 void input(char* msg);

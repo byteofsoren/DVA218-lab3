@@ -43,6 +43,7 @@ void ingsoc_init(ingsoc *insoci)
     insoci->SEQ=0;
     insoci->cksum=0;
     insoci->length=0;
+
     insoci->data[0] = '\0';
 }
 
@@ -183,6 +184,7 @@ u_int CheckSumConf(void *cnf)
     data = cnf;
     for (i=2; i < sizeof(ingsoc); i++) chk += *data++;
     return chk;
+
 }
 
 size_t ingsoc_randomNr(size_t min, size_t max){
@@ -224,7 +226,104 @@ void ingsoc_seqnr(ingsoc *in)
     /* We sett the number to the structure before exiting the function */
     in->SEQ = startNr;
 
+}
 
+size_t convert_size_t(char *buffer, size_t pos, size_t data){
+    int length = sizeof(size_t);
+    char temp[length];
+    memset(temp, 0 , length);
+    //printf("temp=%s, pos=%ld\n", temp, pos);
+    //osnprintf(temp, length, "%ld", data);
+    memcpy(temp,&data,length);
+    memcpy(buffer + pos, temp, sizeof(size_t));
+    return length + pos;
+}
+
+size_t convert_short(char *buffer, size_t pos, unsigned short data){
+    //int length = sizeof(short) * sizeof(char);
+    int length = sizeof(short);
+    char temp[length];
+    //temp[length ] = '\n';
+    memset(temp, 0 , length);
+    //printf("convert_shor length=`%d, temp=%s, pos=%ld, data=%d\n",length, temp, pos, data);
+    //snprintf(temp, length, "%d", data);
+    memcpy(temp,&data,length);
+
+    memcpy(buffer + pos, temp, sizeof(short));
+    return length + pos;
+}
+
+int toSerial(ingsoc *package, char *out){
+    int bytes = 0;
+    bytes = (int) sizeof(ingsoc) + 10;
+    char buffer[bytes + 3];
+    memset(buffer, 0 , bytes + 2);
+    printf("---Buffer---\n%s\n---Buffer---\n", buffer);
+    buffer[bytes+3] = '\0';
+    //buffer[0] = package->ACK;
+    buffer[0] = (package->ACK) ? 't' : 'f';
+    //printf("ACK in buffer is %c\n", buffer[0]);
+    buffer[1] = (package->FIN) ? 't' : 'f';
+    buffer[2] = (package->RES) ? 't' : 'f';
+    buffer[3] = (package->SYN) ? 't' : 'f';
+    int counter = 4;
+    //printf("buffer %s\n" ,buffer);
+    /*char temp[sizeof(size_t)];
+    snprintf(temp, sizeof(size_t), "%ld", package->ACKnr);
+    memcpy(buffer + counter, temp, sizeof(size_t));
+*/
+    counter = convert_size_t(buffer, counter, package->ACKnr);
+    counter = convert_size_t(buffer, counter, package->SEQ);
+    counter = convert_size_t(buffer, counter, package->clientID);
+    counter = convert_short(buffer,  counter, package->cksum);
+    counter = convert_short(buffer, counter, package->length);
+    memcpy(buffer + counter, package->data, 255);
+
+    memcpy(out, buffer, bytes);
+    return bytes;
+}
+size_t revert_size_t(char *buffer, size_t pos, size_t *data){
+    size_t length = sizeof(size_t);
+    char temp[length];
+    memcpy(temp, buffer + pos, sizeof(size_t));
+    //printf("temp=%s",temp);
+    //*data = atoi(temp);
+    memcpy(data,temp,length);
+    return length + pos;
+}
+
+size_t revert_short(char *buffer, size_t pos, unsigned short *data){
+    size_t length = sizeof(short);
+    char temp[length];
+    printf("revert_short buffer=%s pos=%ld lengt=%ld\n" , buffer, pos, length);
+    memcpy(temp, buffer + pos, sizeof(short));
+    printf("short_temp=%s\n",temp);
+    //*data = atoi(temp);
+    memcpy(data,temp,length);
+    return length + pos;
+}
+
+
+ingsoc *fromSerial(char *buffer){
+    ingsoc *pack= (ingsoc*)calloc(1, sizeof(ingsoc));
+    //size_t bytes = sizeof(ingsoc);
+    pack->ACK = (buffer[0] == 't') ? true:false;
+    pack->FIN = (buffer[1] == 't') ? true:false;
+    pack->RES = (buffer[2] == 't') ? true:false;
+    pack->SYN = (buffer[3] == 't') ? true:false;
+    /*char temp[sizeof(size_t)];
+    memcpy(temp, buffer + 4, sizeof(size_t));
+    printf("temp=%s",temp);
+    pack->ACKnr = atoi(temp);
+    */
+    size_t counter = 4;
+    counter = revert_size_t(buffer, counter, &pack->ACKnr);
+    counter = revert_size_t(buffer, counter, &pack->SEQ);
+    counter = revert_size_t(buffer, counter, &pack->clientID);
+    counter = revert_short(buffer, counter, &pack->cksum);
+    counter = revert_short(buffer, counter, &pack->length);
+    memcpy(pack->data, buffer + counter, sizeof(ingsoc));
+    return pack;
 }
 void input(char* msg)		//my input function from user
 {
@@ -246,6 +345,7 @@ void input(char* msg)		//my input function from user
     }
 }
 
+
 int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *host_info){
     /* ingsoc_readMesssage is used to read data form sockets back to who ever
      * function that called it form the beginning. The data pointer in
@@ -258,6 +358,7 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
      * pointer in the argument */
 
     dataRead = recvfrom(fileDescriptor, data, MAXMSG, 0, (struct sockaddr *) host_info, &(nOfBytes));
+
     if(dataRead < 0){
         /* If the was not received we get an error message and returns with -1
          * to tell the calling function that data wasn't read */
@@ -265,10 +366,12 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
         return -1;
     }
 
+
     /* Checksum calculation. The check sum is calculated by first convert the
      * entire struct to an char array and then preform a summarisation of the
      * chars. For long messages that should be pretty secure way to solve the
      * checksum problem */
+
     sentChSum = data->cksum;
     data->cksum = 0;
     /* First we stored the checksum from the received data struct and then we
@@ -300,7 +403,9 @@ int ingsoc_readMessage(int fileDescriptor, ingsoc* data ,struct sockaddr_in *hos
     {
         return -1;
     }
+
     return dataRead;
+
 }
 
 short _numberInJail(){
@@ -310,6 +415,7 @@ short _numberInJail(){
     while((jailer[total] == 1) & (total <= MAX_JAIL)){ total++; } // Loops the jail to count jailed item
     return total;
 }
+
 
 
 bool _sendToJail(ingsoc *in){
@@ -414,6 +520,7 @@ void ingsoc_writeMessage(int fileDescriptor, ingsoc* data, int length, struct so
      * structure to the socket but first we calculate the check sum for the
      * gackage, that is done in the ingsoc cksum function */
     int nOfBytes = 0;
+
     size_t buffer_size = sizeof(ingsoc) + 10;
     char buff[buffer_size];
     char *buffer = buff;
