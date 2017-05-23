@@ -114,7 +114,6 @@ However when the host receives the dr it will send a dr back and wait for an ACK
 \input{./images/swin-recive.tex}
 \\The receiver have two main states, one idle state with no output and another state that sends ACK. When a package is received it goes to the other state that sends back an ACK for that package. This state will be rerun every time a new good package is arriving and ACK those packages. If a corrupt package is received there was a idea to nack that one but with corrupted information about the package itself that will not be possible. So if a corrupt package is received it will just be ignored and let the server timeout that package and resend it. It would in this case not need its own state so the \textbf{NACK/NULL} would not exist and the arrows would just go to idle but the state is there for illustration. If by some reason the receiver buffer was full when the last ACK was sent the server will not send any new packages. So if no packages has been received for a while a window refresh will be sent back to the sender to make sure the sender knows that there is free space. 
 
-
-aoeu
+\input{part2.tex}
 
 \end{document}

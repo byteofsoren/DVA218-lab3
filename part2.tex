@@ -1,0 +1,51 @@
+
+\section{How to run the program}
+
+Before executing the program its need to be compiled using the make program.
+
+\begin{lstlisting}
+ $ make all
+\end{lstlisting}
+
+There is also a CMakeLists.txt if that is preferred to compile with. It is for building with CLion IDE but should be able to compile in regular terminal.\\
+
+This implementation of the program uses command line argument to define if the program is going to be a server or a client. If no argument is passed the program is going to be executed as a server. Like this.
+
+\begin{lstlisting}
+  $ ./prog.out
+\end{lstlisting}
+
+To execute the program as a client simply specify what address you want to send to.
+\begin{lstlisting}
+  $ ./prog.out localhost
+\end{lstlisting}
+
+or for example using a IP number. 
+\begin{lstlisting}
+  $ ./prog.out 130.243.87.87
+\end{lstlisting}
+ 
+If the project was compiled with CMake the executable is called little bit different but the rest is the same. The executeble will also in lie in a sub-folder of the project called cmake-build-debug/
+\begin{lstlisting}
+  $ ./dva218-lab3
+\end{lstlisting}
+
+
+After the initial handshake we are asked to type message and finish by pressing enter. Now the internal logic takes over and sends the message over socket to the other computer. When it was successfully delivered to the server the program end.
+
+\section{Errors}
+\subsection{Error Generation}
+The error simulation in this program is done by a function that is named \textbf{errorGenerator}. This generator works by parentage of chance to get a error and multiple error can happen on the same package. In our case we can generate the following type of error to a package. 
+\begin{enumerate}
+    \item Check sum error
+    \item Package got out of order
+\end{enumerate}
+The check sum error is just a random new check sum that is applied to the package. The out of order part of the error generator is using a array as a Jail that can randomly store the package. By using that solution the package can arrive to the receiver out of order or even be double written on the socket connection. 
+
+\subsection{Error Detection}
+tom
+\section{Receiver}
+To split the problem there is now a receiver and a sender since both server and clients do have receiving and sending sections.
+The receiver have a simple job of handling faulty packets. If something is wrong it is found in Error Detection which is in \textbf{ingsoc\_readMessage} and the needs to be 0 for a OK packet. If it is not the packet is just dropped. 
+\section{Sender}
+tom
