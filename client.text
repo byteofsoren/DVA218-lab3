@@ -15,7 +15,7 @@ Client - Reading socket in final state
 Client - Threeway handshake successful
 --- END ---
 	Ended 3 way handshake function
-Client - Message to send: 
+Client - Message to send: Hello
 Client - Package 1 sent, 
     SEQ nr: 2004962
 Client - Package 2 sent, SEQ nr: 2004963
