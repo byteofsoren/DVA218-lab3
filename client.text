@@ -16,7 +16,7 @@ Client - Threeway handshake successful
 --- END ---
 	Ended 3 way handshake function
 Client - Message to send: 
-[032m[0mClient - Package 1 sent, 
+Client - Package 1 sent, 
     SEQ nr: 2004962
 Client - Package 2 sent, SEQ nr: 2004963
 ACK recievedm 2004963
