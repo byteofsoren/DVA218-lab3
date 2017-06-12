@@ -1,0 +1,28 @@
+1.20
+1.32
+1.25
+Starting server..
+
+[waiting for connections...]
+Server - SYN received on 2004960
+Server - ACK + SYN sent on 2004960 with SEQ: 267959844
+Server - ACK not received, attempt: 1
+Server - ACK + SYN sent on 2004960 with SEQ: 267959844
+Server - final ACK received for 2004961
+Server - Three-way handshake successful
+Window size is 4
+Server - Package 1 received, SEQnr: 2004962
+[1;31mCheck sum error on 267959845[0m
+SEQ [38;5;205m267959845[0m to jail
+Sending ACK on 2004962 with SEQ: 267959845
+Server - Package 2 received, SEQnr: 2004963
+Sending ACK on 2004963 with SEQ: 267959846
+Server - Package 1 received, SEQnr: 2004962
+Sending ACK on 2004962 with SEQ: 267959847
+FIN received with SEQ: 2004964
+--Message was--
+[[032mhello [0m]
+Server - FIN+ACK sent to client with SEQ: 267959848 Answer to: 2004964
+Server - ACK received (2004965), disconnecting.
+Program ended
+
