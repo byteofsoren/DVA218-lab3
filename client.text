@@ -1,29 +1,34 @@
-1.20
-1.32
-1.25
 Starting a client section
 Connecting to  localhost
 Client - SYN sent with SEQ nr: 2004960
-Client - ACK+SYN received for 2004960 with SEQ nr: 267959844
-Client - ACK sent on 267959844 with SEQ nr: 2004961
-[1;31mCheck sum error on 2004961[0m
+Client - ACK+SYN received for 2004960 
+    with SEQ nr: 267959844
+Client - ACK sent on 267959844 with 
+    SEQ nr: 2004961
+Check sum error on 2004961
 Client - Reading socket in final state
-Client - Received duplicate ACK+SYN in final state
-Client - ACK sent on 267959844 with SEQ nr: 2004961
+Client - Received duplicate ACK+SYN 
+    in final state
+Client - ACK sent on 267959844 with 
+    SEQ nr: 2004961
 Client - Reading socket in final state
 Client - Threeway handshake successful
 --- END ---
 	Ended 3 way handshake function
 Client - Message to send: 
-[032m[0mClient - Package 1 sent, SEQ nr: 2004962
+[032m[0mClient - Package 1 sent, 
+    SEQ nr: 2004962
 Client - Package 2 sent, SEQ nr: 2004963
-[032mACK recieved[0m: [034m2004963[0m
-Client - Package 1 resent , SEQ nr: 2004962
-[032mACK recieved[0m: [034m2004962[0m
+ACK recievedm 2004963
+Client - Package 1 resent , 
+    SEQ nr: 2004962
+ACK recieved 2004962
 Client - No more packages to send
 Client - Disconnecting
 Client - FIN sent with SEQ nr: 2004964
-Client - FIN+ACK received on SEQ nr: 2004964
-Client - ACK sent on 267959848 with SEQ nr: 2004965
+Client - FIN+ACK received on 
+    SEQ nr: 2004964
+Client - ACK sent on 267959848 with 
+    SEQ nr: 2004965
 Program ended
 
