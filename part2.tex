@@ -75,5 +75,13 @@ On the receiver side of the sliding window we first wanted to have two different
 \subsection{Teardown}\label{subsec:tear_down}
 We first intended the teardown to be implemented so that either side could initialize the disconnect protocol, but we it ended up always being the sender that sends the disconnection request when it is done sending packages. 
 
-
-\verbatiminput{client.text}
+\subsection{Program outputs}\label{subsec:prog_output}
+In this section the reader can find trial output from the program caught by redirecting the programs to a file with the arrow operator in Linux.  
+\subsubsection{client}\label{subsubsec:client_out}
+This is the listing of a trial run of the client sending hello to the server.
+{\footnotesize
+\verbatiminput{client.text}}
+\subsubsection{server}\label{subsubsec:server_out}
+This is the listing of atrial run when the server receives the hello.
+{\footnotesize
+\verbatiminput{server.text}}
