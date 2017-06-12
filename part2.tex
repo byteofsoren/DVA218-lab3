@@ -1,13 +1,18 @@
-
-\section{How to run the program}
-
-Before executing the program its need to be compiled using the make program.
-
+\section{How to download the program}
+Our implementation of the program can be downloaded from git hub using the following command on a machine that have the git package installed.
 \begin{lstlisting}
+ $ git clone https://github.com/byteofsoren/DVA218-lab3.git
+\end{lstlisting}
+
+\section{How to execute the program}
+Before executing the program its need to be compiled using the make program.
+\begin{lstlisting}
+ $ cd DVA218-lab3
  $ make all
 \end{lstlisting}
 
-There is also a CMakeLists.txt if that is preferred to compile with. It is for building with CLion IDE but should be able to compile in regular terminal.\\
+There is also a CMakeLists.txt if that is preferred to compile with. It is for building with CLion IDE but should be able to compile in regular terminal as well.
+
 
 This implementation of the program uses command line argument to define if the program is going to be a server or a client. If no argument is passed the program is going to be executed as a server. Like this.
 
@@ -33,19 +38,39 @@ If the project was compiled with CMake the executable is called little bit diffe
 
 After the initial handshake we are asked to type message and finish by pressing enter. Now the internal logic takes over and sends the message over socket to the other computer. When it was successfully delivered to the server the program end.
 
-\section{Errors}
-\subsection{Error Generation}
-The error simulation in this program is done by a function that is named \textbf{errorGenerator}. This generator works by parentage of chance to get a error and multiple error can happen on the same package. In our case we can generate the following type of error to a package. 
+\section{Errors}\label{subsec:errors}
+\subsection{Check sum}\label{subsec:csum}
+Before a package is sent to a receiver the program calculates the check sum by  first setting the packages check sum to zero and then serialising the package to a buffer array. Then the buffer array is then iterated over and byte by byte to sum up to a value that is then stored in the packages check sum. The receiver does almost the same thing as the sender. It stores the check sum in a temporary variable and set the package check to zero and then do the serialisation mentioned above. If the result of the check sum is equal to the temporary variable then the package is considered unchanged.
+\subsection{Error Generation}\label{subsec:errGen}
+The error simulation in this program is done by a function that is named \textbf{errorGenerator}. This generator works by percentage of chance to get a error and multiple error can happen on the same package. In our case we can generate the following type of error to a package. 
 \begin{enumerate}
     \item Check sum error
     \item Package got out of order
 \end{enumerate}
-The check sum error is just a random new check sum that is applied to the package. The out of order part of the error generator is using a array as a Jail that can randomly store the package. By using that solution the package can arrive to the receiver out of order or even be double written on the socket connection. 
+The check sum error is just a random new check sum that is applied to the package. The out of order part of the error generator is using a array as a jail that can randomly store the package for a short period of time. By using that solution the package can arrive to the receiver out of order or even be double written on the socket connection, simulating that a package has taken a longer route and arrives delayed. 
 
-\subsection{Error Detection}
-tom
-\section{Receiver}
+\subsection{Error Detection}\label{subsec:errDet}
+The error detection relies on the previously mentioned method in the subsection Check sum \ref{subsec:csum}. If the package is corrupt the read function return a negative answer and the package is considered lost.
+
+
+\section{Receiver}\label{sec:receiver}
 To split the problem there is now a receiver and a sender since both server and clients do have receiving and sending sections.
-The receiver have a simple job of handling faulty packets. If something is wrong it is found in Error Detection which is in \textbf{ingsoc\_readMessage} and the needs to be 0 for a OK packet. If it is not the packet is just dropped. 
-\section{Sender}
-tom
+The receiver have a simple job of handling faulty packets. If something is wrong it is found in Error Detection which is in \textbf{ingsoc\_readMessage} and the returns from that function needs to be 0 for a OK packet. If read find a problem there is two ways it is handled. Some places the toRead is set to init (0 and false on everything) but most often all code about the read message is skipped and the result is the same as a timeout. This is resend the last message and wait for the correct package again.\\
+For example from \textbf{server.c} in the three way handshake if the \textbf{ingsoc\_readMessage} returns -1 (which it does with checksum or ID faults) the read is zeroed to reach the else statement. This in turn have the same outcome as a message with no ACK or a timeout (in this specific case, most often a timeout). Increasing the counter and running the specific part of three-way again and if it has tried enough times it gives up.
+\lstinputlisting[firstline=186, lastline=202, frame=single]{server.c}
+
+\section{Sender}\label{sec:sender}
+The sender really doesn't know that anything is wrong. If the sent packet had anything that made the receiver dismiss it the sender will just timeout and resend when it doesn't receive an ACK on that package. In some cases like the one in receiver above where it resend their package the sender will have a package it didn't expect (in three-way and teardown). This in turn will make the sender to a receiver and it will do a resend of its package and wait for a return. Since the package that is resent from both sides is the package the other side expect it moves on very quickly moving to sliding window.\\
+Even though this example is for three-way handshake the same principle remain for all other parts of the code except what message is resent and when. Sliding window for example only do resend on timeout and the server (receiver) just doesn't send ACK on faulty packages and really old packages. 
+
+\section{Differences between theoretical and implementation}\label{sec:changes}
+There has been some minor changes in the concept from when we first created our state machines to when our solution was done. 
+\subsection{Three-way Handshake}\label{subsec:TWshake}
+There wasn't really any notable changes to the three-way handshake in either the server or the client part. The small difference was to not implement any reject and that meant that client became easier. This meant that fault in threeway is only handled by timeout. 
+
+\subsection{Sliding Window Protocol}\label{subsec:SWP}
+We did have vague plans to use negative acknowledgements (NACK) in our sliding window protocol but we ended up not using this solution. Instead the sender puts a timer on each package it sends and if it doesn't receive an ACK in this period of time for that package it will timeout and resend the package.\\
+On the receiver side of the sliding window we first wanted to have two different scenarios, one if we receive a corrupt package and one if we don't receive any packages. The scenario where we don't receive a package that we expect the plan was to wait for a timeout and then just assume it is either done or the connection is lost so we would disconnect. Now however we came to the conclusion that it was a bad idea to give up so easy, so instead it is handled from the sender side to make sure the packages is sent when something is corrupt or get lost, the receiver just keep waiting for packages and then finally a disconnection request when all the packages is sent.
+
+\subsection{Teardown}\label{subsec:tear_down}
+We first intended the teardown to be implemented so that either side could initialize the disconnect protocol, but we it ended up always being the sender that sends the disconnection request when it is done sending packages. 
